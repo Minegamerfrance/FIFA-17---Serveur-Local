@@ -1,0 +1,6 @@
+v70:
+- Analysis of v69: Our hook on 0x1461334d0 failed to catch `0x1009` (FAIL_9), yet the state `iState` ultimately changed to `4105` (0x1009). This indicates that the error is either set elsewhere, or the arguments passed to `ProtoSslSetState` are not simply the error code itself (e.g. they could be a pointer, or an enum where 0x1009 is represented differently like 9).
+- Kept `Interceptor.attach` on `0x1461334d0` (ProtoSslSetState) but REMOVED the blocking logic.
+- Instead, the script will now log `args[1]` and `args[2]` for every call to `0x1461334d0`. This will allow us to observe exactly what is passed during ServerHello and when the Certificate verification fails.
+- Added `disasmRange(mod, 0x61334d0, 0, 32)` to dump the prologue of `0x1461334d0`.
+- Kept the `je -> jmp` patches at `0x612f39c` and `0x61261eb`.

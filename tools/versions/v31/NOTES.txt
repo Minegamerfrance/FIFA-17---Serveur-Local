@@ -1,0 +1,11 @@
+v31 — zero code patches (isolate crash)
+======================================
+
+But: est-ce que MD5 + bAllowAnyCert@+288 + strHost suffit SANS patch mémoire ?
+- Si pas de crash + ALERT 42 → cert parse OK, verify échoue (attendu), patches étaient la cause du crash
+- Si pas de crash + ★ CKE → on a gagné sans patch
+- Si crash encore → autre chose (hooks recv/send ou cert MD5)
+
+Résultat: CRASH encore après recv 765 malgré ZERO patch code.
+⇒ crash ≠ Memory.patchCode. Candidats: cert MD5 755B (parse profond) ou écritures flag/strHost.
+→ v31: cert noext SHA1 + Frida observe-only (pas d'écritures)

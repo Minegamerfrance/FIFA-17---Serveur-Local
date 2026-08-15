@@ -1,0 +1,17 @@
+verdict=COMBINED_FORCE_ADDR_RESTORES_CONNECT
+why=no LSX messages
+protocolVersion=None
+sdkVersion=None
+keyModes={'none': 9}
+IsManualOffline=None
+connected=None
+GoOnlineCode=None
+isOnline=None
+loginEvent=False
+loginSender=None
+loginFields={}
+middlewareReason=None
+postWincodes=False
+profileMissing=['UserIndex', 'UserId', 'PersonaId', 'Persona', 'AvatarId', 'Country', 'IsUnderAge', 'IsSubscriber', 'IsTrialSubscriber', 'SubscriberLevel', 'GeoCountry', 'CommerceCountry', 'CommerceCurrency', 'IsSteamSubscriber']
+identity={}
+chronology=

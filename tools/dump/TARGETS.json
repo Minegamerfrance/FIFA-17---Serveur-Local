@@ -1,0 +1,23 @@
+{
+  "moduleBaseAssumed": "0x140000000",
+  "note": "RVAs = VA - 0x140000000. Pipeline: createBlazeHub→ConnectionManager→Fire2. See pipeline-callers.txt.",
+  "targets": {
+    "createBlazeHub_decision": { "va": "0x146db6900", "rva": "0x6db6900", "role": "GATE: validate ServerInstance strings then create hub+CM+Fire2; eax==0 OK" },
+    "decision_caller": { "va": "0x147182682", "rva": "0x7182682", "role": "calls createBlazeHub after building SI on stack" },
+    "BlazeHub_ctor_like": { "va": "0x146daa830", "rva": "0x6daa830", "role": "ctor after alloc 0xcb0 near Blaze Hub string" },
+    "ConnectionManager_attach": { "va": "0x146db6af0", "rva": "0x6db6af0", "role": "attaches CM on hub" },
+    "ConnectionManager_factory": { "va": "0x146e19680", "rva": "0x6e19680", "role": "RTTI ConnectionManager" },
+    "Fire2_parent_ctor": { "va": "0x146e18660", "rva": "0x6e18660", "role": "embeds Fire2Connection at +0x10" },
+    "Fire2Connection_ctor": { "va": "0x146daaee0", "rva": "0x6daaee0", "role": "Fire2Connection constructor" },
+    "getServerInstanceHttp_mapper": { "va": "0x146dee5a0", "rva": "0x6dee5a0", "role": "error/name switch returns string ptr" },
+    "redirector_error_mapper": { "va": "0x146dee6f0", "rva": "0x6dee6f0", "role": "maps blaze error codes to REDIRECTOR_* strings" },
+    "ServiceResolver_a": { "va": "0x146dbaa47", "rva": "0x6dbaa47", "role": "ServiceResolver.resolveService LEA site" },
+    "ServiceResolver_b": { "va": "0x1486b4561", "rva": "0x86b4561", "role": "ServiceResolver.resolveService alt" }
+  },
+  "path_string": {
+    "va": "0x14388e978",
+    "text": "redirector/getServerInstance",
+    "ptr_slots": ["0x14388e7d8", "0x14388e810"],
+    "rip_xrefs": 0
+  }
+}

@@ -1,0 +1,34 @@
+v55 — real verify path: all eax-test gates → return 0
+
+Gemini (accepted) + evidence:
+- FAIL_9 AFTER ★PARSE_OK (KeyMod @ pSecure+0x24b0)
+- Causes: hostname / CA / date — make verify path return 0
+- NO force iState / inject KeyMod / flush / FAIL_9→21
+
+Why xor@612d548 (v53) failed:
+- One call→0x6129eb0 + test/je only — DirtySDK still has
+  WildcardMatch THEN _VerifyCertificate (second gate unpatched)
+- v54 je-belt never applied (PATTERN e8 broken after xor)
+- v54 FAIL_9 jcc/jmp scan = 0 hits (not how stub is reached)
+
+v55:
+- softHost CN sticky (re-write if cleared) on after-CH + recv-enter
+  (before ProtoSSL processes cert record)
+- Map FIFA+0x612d000..0x6133000 for call+test eax+jcc (log all)
+- Patch band 0x612d480..0x612e000 + verify-style jcc hors bande
+  → call-site xor eax,eax;nop×3 + force success jcc polarity
+- Belt: 0x612d548 xor + je→jmp @+10
+- NEVER prologue-patch hot 0x6129eb0 (v44 hang)
+- FAIL_9 observe only; dump strHost+flag+BT probe disasm
+- Keep dumpCert modulus@0x24b0
+- Drop blind FAIL_9 jcc-NOP as primary hammer
+
+Succès: fail9Hits=0 + ★PARSE_OK + ★HelloDone + ★ ClientKeyExchange (hs=16)
+Expected log:
+- soft strHost … → gosredirector.ea.com [after-CH]
+- ★ eax-test gates found=N (N≥2 ideally)
+- PATCH gate-xor#… call@…→…
+- dumpCert … mod@24b0 iKeyModSize=128 ★PARSE_OK
+- recv … ★HelloDone
+- ★ ClientKeyExchange
+- fail9Hits=0

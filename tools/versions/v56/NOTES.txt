@@ -1,0 +1,36 @@
+v56 — FAIL_9 XREF → xor preceding verify call
+
+Gemini (accepted):
+- FAIL_9 stub @ RVA 0x61326fa (mov eax,0x1009) is in the
+  state-machine dispatcher, ~20KB past ServerCert parse band
+- v55 only patched eax-test gates in 0x612d480–0x612e000 (parser)
+  → likely missed final hostname/CA verify that jumps to FAIL_9
+- DO NOT: mov 0x1009→21 / force iState / flush / inject
+- NEVER Interceptor/prologue on hot 0x6129eb0
+
+Why v55 missed:
+- Parser-band xor is not the final verify that feeds FAIL_9
+- v54 jcc→FAIL_9 scan = 0 hits (weak window / no Instruction.walk)
+
+v56 strategy:
+1. Thorough XREF: jcc/jmp (rel8/rel32) whose target == FAIL_9
+   - local windows FAIL9-0x800 and FAIL9-0x4000
+   - wide ProtoSSL scan 0x6120000..0x6140000
+   - Instruction.parse walk FAIL9-0x4000
+2. Near each XREF: preceding call + test eax,eax
+3. Patch that call → xor eax,eax; nop×3 (31 C0 90 90 90)
+4. If jcc-to-FAIL9 is je/jz (eax0 would take fail): NOP that jcc
+5. Fallback if XREF=0: eax-test gates in FAIL9-0x4000..FAIL9
+6. Keep v55 parser-band gate xor + softHost sticky + flag+288
+7. FAIL_9 observe only + richer BT (fuzzy+accurate+xref probes)
+8. dumpCert modulus @ pSecure+0x24b0
+
+Expected log:
+- FAIL_9 jcc @ FIFA+RVA → stub
+- FAIL9-xref-xor call@FIFA+…→… (jcc@…)
+- dumpCert … ★PARSE_OK
+- recv … ★HelloDone
+- ★ ClientKeyExchange
+- fail9Hits=0
+
+Succès: fail9Hits=0 + ★PARSE_OK + ★HelloDone + ★ ClientKeyExchange (hs=16)

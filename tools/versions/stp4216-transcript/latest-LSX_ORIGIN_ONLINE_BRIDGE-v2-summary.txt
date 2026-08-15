@@ -1,0 +1,17 @@
+verdict=LSX_DECRYPT_OK_NO_REWRITE
+why=GetSettings seen but IsManualOffline not extracted
+protocolVersion=3
+sdkVersion=9.12.1.2
+keyModes={'session_accepted': 52}
+IsManualOffline=None
+connected=1
+GoOnlineCode=None
+isOnline=1
+loginEvent=True
+loginSender=EbisuSDK
+loginFields={'IsLoggedIn': 'true', 'UserIndex': '0', 'LoginReasonCode': 'ALREADY_ONLINE', 'sender': 'EbisuSDK'}
+middlewareReason=None
+postWincodes=False
+profileMissing=[]
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17', 'UserId': '1000000001', 'PersonaId': '1000000001', 'Persona': 'maxence30evrard'}
+chronology=Challenge → ChallengeResponse → ChallengeAccepted → OnlineStatusEvent → CurrentUserPresenceEvent → ProfileEvent → Login → GetConfig → GetConfigResponse → GetProfile → GetProfileResponse → GetSetting → GetSettingResponse → Request → Response → Request → Response → GetSetting → GetSettingResponse → GetSetting → GetSettingResponse → Request → Response → GetProfile → GetProfileResponse → Request → ErrorSuccess → Request → Response → GetSetting → GetSettingResponse → Request → Response → Request → ErrorSuccess → GetSetting → GetSettingResponse → Request → Response → GetInternetConnectedState → InternetConnectedState → Request → ErrorSuccess → Request → ErrorSuccess → GetProfile → GetProfileResponse → Request → ErrorSuccess → Request

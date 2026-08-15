@@ -1,0 +1,16 @@
+v65:
+- Le log de la v64 montre que le patch `je -> jmp` en 0x612f39c a été appliqué, mais le jeu a quand même fini dans le stub `FAIL_9` (en 0x1461326fa).
+- Le `BT-fuzzy` (backtrace) de la v64 nous montre le chemin exact pris par l'erreur:
+  FIFA+613222a
+  FIFA+6133638
+  FIFA+61321de
+  FIFA+612f38f
+  FIFA+61261da
+- En regardant le désassemblage de `Caller_61261da` dans le log v64, on voit:
+  61261da  lea rcx, [rbx + 0x40]
+  61261de  call 0x14612a250 CALL
+  61261e3  mov eax, dword ptr [rbx + 0x8c]
+  61261e9  test eax, eax
+  61261eb  je 0x146126213
+- Le saut conditionnel `je 0x146126213` en `0x61261eb` est le prochain point de contrôle d'erreur dans la chaîne d'appels.
+- Action: On ajoute un deuxième patch `je -> jmp` en `0x61261eb` pour forcer le succès à ce niveau supérieur de la pile d'appels.

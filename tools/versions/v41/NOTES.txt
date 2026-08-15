@@ -1,0 +1,13 @@
+v41 — find LIVE reliably (PARENT arg0)
+======================================
+
+v40 broke LIVE discovery → all state logic dead.
+
+- Hook PARENT onEnter: args[0] is ProtoSSLRefT*
+- Strict isClassic (winter15 host + AF_INET + port)
+- After soft host: accept CERT_CN as host too
+- One-shot module/heap scan fallback after CH if still null
+- Keep Aim4kill cert + soft host + je→jmp + fail→21
+
+Résultat: HOST hits but none classic; broad scan no LIVE; PARENT silent.
+→ v42: probe + iState heuristic + no heap size skip

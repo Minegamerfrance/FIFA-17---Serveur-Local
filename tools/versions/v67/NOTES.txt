@@ -1,0 +1,5 @@
+v67:
+- In v66, patching the jump at `0x61321c8` caused the handshake to stop abruptly after receiving the ServerHello (`recv#2 n=42`).
+- This was likely because skipping `0x1461334d0` entirely via a jump skipped crucial state setup during the initial parts of the handshake (before the certificate was even received).
+- In v67, instead of skipping the call, we neuter `0x1461334d0` (which we suspect is `ProtoSslSetError`) by patching its first bytes to `xor eax, eax; ret`.
+- This ensures that if the function is called, it immediately returns without setting `FAIL_9` (or any other error state), while preserving the control flow and stack of the caller.

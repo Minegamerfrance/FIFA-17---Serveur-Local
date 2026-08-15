@@ -1,0 +1,11 @@
+v52 — after client Certificate flush → state 23 (CKE)
+=====================================================
+
+FIFA states (observed):
+  22 = send empty Client Certificate
+  23 = send ClientKeyExchange (classic SEND_CHANGE number!)
+  24 = send Finished
+
+- Inject KeyMod via CN+400 (v49, allow non-strict CN)
+- HelloDone → 22 → FLUSH hs=11 → set 23 → FLUSH hs=16
+- Never pull back to 22 after cert flushed

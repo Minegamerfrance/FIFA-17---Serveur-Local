@@ -1,0 +1,5 @@
+v72:
+- La v71 a prouvé que patcher le stub `FAIL_9` (`mov eax, 0` en `0x1461326fa`) neutralise bien l'erreur.
+- Cependant, le gestionnaire d'erreur commun (vers lequel le stub saute) a pris ce `0` et l'a assigné à `iState`, ce qui a mis la connexion en état `ST_IDLE` (0) et a arrêté la machine à états.
+- Pour la v72, nous ajoutons un dump assembleur (`disasmRange`) du gestionnaire d'erreur commun (à `0x1461325e1`).
+- L'objectif est de trouver l'instruction exacte qui fait `iState = eax` (probablement `mov [rdi + 0x110], eax` ou similaire) afin de pouvoir la NOP dans la v73. Ainsi, `iState` restera à `0x15` (RECV_HELLO) et la connexion pourra continuer !

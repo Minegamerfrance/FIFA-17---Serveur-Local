@@ -1,0 +1,6 @@
+v69:
+- Fixed access violation spam caused by Interceptor.replace infinite recursion (calling the hooked pointer).
+- Switched to Interceptor.attach on 0x1461334d0 (ProtoSslSetState).
+- In onEnter, if args[1] == 0x1009 (FAIL_9), we read the current state from args[0] + 0x110 (ISTATE_OFF is 272) and set args[1] to the current state.
+- This effectively neuters the state change without breaking the function's execution or causing a crash.
+- Kept the je->jmp patches at 0x612f39c and 0x61261eb.

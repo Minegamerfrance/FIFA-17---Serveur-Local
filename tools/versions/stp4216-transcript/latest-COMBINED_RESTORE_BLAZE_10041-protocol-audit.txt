@@ -1,0 +1,23 @@
+=== STP4216_PROTOCOL_AUDIT ===
+verdict=COMBINED_FORCE_ADDR_RESTORES_CONNECT
+why=no LSX messages
+protocolVersion(@version)=None
+sdkVersion(<Version>)=None
+decryptOk=0 decryptFail=9
+keyModes={'none': 9}
+idMatchOk=0 idMatchFail=0
+eventWithId=0 loginAsResponse=False
+IsManualOffline=None
+connected=None
+GoOnlineCode=None
+isOnline=None
+loginEvent=False fields={}
+middlewareReason=None
+postWincodes=False
+authCodeSeen=False
+profile={}
+profileMissing=['UserIndex', 'UserId', 'PersonaId', 'Persona', 'AvatarId', 'Country', 'IsUnderAge', 'IsSubscriber', 'IsTrialSubscriber', 'SubscriberLevel', 'GeoCountry', 'CommerceCountry', 'CommerceCurrency', 'IsSteamSubscriber']
+presence={}
+identity={}
+--- Facility → Recipient ---
+--- Chronology ---

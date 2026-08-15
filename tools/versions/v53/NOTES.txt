@@ -1,0 +1,25 @@
+v53 — plan SSL CKE root cause (stop force/flush/inject)
+
+GEL (dead ends v46–v52):
+- FAIL_9→21 (continues handshake broken)
+- force iState 22/23/28
+- flush SendData
+- CN→KeyMod inject
+
+ÉTAPE A (diagnostic, always on):
+- dumpCert: Sig/KeyMod/KeyExp/Hash via Subject.strCommon
+  (+136/+400/+660/+680 DirtySDK)
+- hook FAIL_9 @RVA 0x61326fa OBSERVE only (backtrace + dump)
+- no mov eax,0x1009→21
+
+ÉTAPE B (MODE=bypass, default):
+- BFP4F: neutralize VerifyCertificate call-site only
+  pattern call→RVA_REAL_CHECK → xor eax,eax; nop×3
+- leave test/je (eax=0 = success path)
+- let DirtySDK build CKE naturally
+
+KEEP: LIVE connect-sa, bAllowAnyCert+288, softHost after CH, block close
+
+Succès: ★PARSE_OK + ★ ClientKeyExchange (hs=16)
+Si FAIL_9 + parseOk=false → fix cert serveur (pas Frida)
+MODE=diag in frida-ssl-bypass.js for observe-only run

@@ -1,0 +1,33 @@
+﻿{
+    "runId":  "F17-20260813-202609-a42b63",
+    "startedAt":  "2026-08-13T18:26:09.5527527Z",
+    "personaId":  1000000001,
+    "personaName":  "Minegamerfrance",
+    "serverLog":  "C:\\Users\\Mineg\\Desktop\\serveur fifa 17\\fifa serveur\\logs\\server-2026-08-13_18-26-04.log",
+    "portOwners":  [
+                       {
+                           "Port":  4216,
+                           "Pid":  21380,
+                           "Name":  "node.exe",
+                           "CommandLine":  "\"C:\\Program Files\\nodejs\\node.exe\" .\\dist\\index.js"
+                       },
+                       {
+                           "Port":  42230,
+                           "Pid":  21380,
+                           "Name":  "node.exe",
+                           "CommandLine":  "\"C:\\Program Files\\nodejs\\node.exe\" .\\dist\\index.js"
+                       },
+                       {
+                           "Port":  10041,
+                           "Pid":  21380,
+                           "Name":  "node.exe",
+                           "CommandLine":  "\"C:\\Program Files\\nodejs\\node.exe\" .\\dist\\index.js"
+                       },
+                       {
+                           "Port":  8000,
+                           "Pid":  21380,
+                           "Name":  "node.exe",
+                           "CommandLine":  "\"C:\\Program Files\\nodejs\\node.exe\" .\\dist\\index.js"
+                       }
+                   ]
+}

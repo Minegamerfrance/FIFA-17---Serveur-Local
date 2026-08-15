@@ -1,0 +1,6 @@
+v48 — inject RSA key + FIFA states (no force-22)
+=================================================
+
+Résultat: CRASH after inject @ pSecure+128
+Offset 128 = too early (KeyBlock/randoms), false-positive slot.
+→ v49: locate Cert via Subject.strCommon CN, then precise KeyMod only

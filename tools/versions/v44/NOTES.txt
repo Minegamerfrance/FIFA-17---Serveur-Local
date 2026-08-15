@@ -1,0 +1,12 @@
+v44 — soft host after CH + kill FAIL_9 (0x1009)
+================================================
+
+Résultat:
+- LIVE + CH 116 + softHost after-CH OK
+- fail-imm 0x1009/0x100A/0x100D→21 applied (9)
+- site patches OK
+- VERIFY gated hook = HOT PATH disaster: thousands of "VERIFY ret 5→0 (st=21)"
+- NO recv# / no HelloDone / no CKE — process spun in RECV_HELLO
+- FAIL→21 immediates likely keep state machine looping
+
+→ v45: REMOVE verify hook + REMOVE fail-imm→21; keep site patches + LIVE

@@ -1,0 +1,43 @@
+v59 — Stalker autopsy (Gemini, after v58 jump-table proof)
+
+v58 verdict (proven):
+- FAIL_9 @ 0x61326fa is NOT fall-through
+- Pre-stub disasm: mov edx,2 / call errorlog / mov eax,0x1009 / jmp exit
+- Isolated switch/error case reached via jump table
+- Static XREF / fall-through je→jmp find nothing useful
+
+v59 KEEP (no verify patches):
+- LIVE connect-sa, softHost sticky, flag+288, dumpCert @0x24b0
+- FAIL_9 observe @ 0x61326fa (NO 0x1009→21)
+- Block close briefly for logging
+- PARENT hook for softHost/flag + stalker arm on ProtoSSL tid
+
+v59 REMOVE / OFF:
+- fall-through je→jmp
+- broad xor gates, XREF xor, v53 belt xor
+- force iState / flush / inject / prologue 0x6129eb0
+
+v59 ADD — Stalker autopsy:
+1) Ring of last ~15 BBs in FIFA+0x6120000..0x6140000
+2) Stalker.follow on ProtoSSL/recv tid when cert arrives (n>500)
+   or PARENT enter; events.block+onReceive with transform.callout fallback
+3) On FAIL_9: unfollow, dump [Block -N] via Instruction.parse
+4) Mark ★CALL / ★TEST_EAX / ★JCC — look in Block -2/-3
+5) Unfollow on FAIL_9 or 5s timeout; MODE=diag skips stalker
+
+MODE=bypass — softHost/flag + stalker (default, discovery)
+MODE=diag   — softHost/flag + FAIL_9 observe, no stalker
+
+Expected log:
+- loaded v59 … stalker=true
+- ★ LIVE … [connect-sa]
+- setup done patches=0 stalker=…
+- FAIL9-stalker ON tid=… api=events|transform [post-cert-recv-…]
+- dumpCert … ★PARSE_OK
+- ★ HIT FAIL_9 …
+- FAIL9-stalker OFF … [FAIL_9#1]
+- ★ FAIL9-AUTOPSY … [Block -15] … [Block -1]
+- Block -2/-3 with ★CALL + ★TEST_EAX + ★JCC  ← paste for v60
+
+Succès interim: no crash + autopsy ring non-vide + call RVA identifiable
+Next (v60): xor that call site only (aligned Instruction.parse)

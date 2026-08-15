@@ -1,0 +1,24 @@
+Blaze ProtoSSL cert — passive inspect (2026-07-27)
+Source: certs/blaze/server.crt
+Tool: Node crypto.X509Certificate (openssl not installed)
+
+subject: CN=gosredirector.ea.com
+         OU=GOS
+         O=Electronic Arts, Inc.
+         ST=California
+         C=US
+issuer:  same as subject (self-signed)
+valid:   Jul 24 2026 → Dec 9 2053
+serial:  3B5A9A4E83EC9964BF5087D868C7A669C6A1A5BD
+fingerprint256: 07:C8:43:FD:6D:32:E3:22:6C:74:0F:13:3B:BE:4B:48:EC:32:06:9A:A7:10:1F:1F:93:C4:6B:D9:D4:C6:80:C0
+keyUsage:      undefined / absent
+extKeyUsage:   undefined / absent
+subjectAltName: undefined / absent  ★ no DNS SAN, no IP:127.0.0.1
+ca:            false
+pubKey:        RSA 1024
+
+Verdict (passive only — do NOT regen yet):
+- Cert matches Pocket Relay / blaze-ssl-async style (CN=gosredirector.ea.com).
+- Redirector handshake with this cert reaches CKE successfully.
+- Missing SAN/IP is a hypothesis for Blaze hostname check, but NOT proven culpable yet.
+- Wait for Frida first-fail function before regenerating.

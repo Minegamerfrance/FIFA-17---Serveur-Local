@@ -1,0 +1,16 @@
+# 2026-07-27 — FILL_LIST CRASH
+
+## What happened
+FILL_LIST synthesized fake vtable at result+0x10; resolve_cb then crashed FIFA
+(no onLeave, no BLAZE_CONNECT). Log stops at:
+  FILL_LIST elem@… LIST_NULL → FILL_LIST addrList=…
+
+## Stable path (proven CAS A)
+PIPE_FILL_LIST=0
+PIPE_FORCE_ADDR=1
+PIPE_SEED_HOST=1 (optional; does not fill addrList alone)
+
+run-pipeline-probe.ps1 forces FILL_LIST=0 FORCE_ADDR=1 (clears shell leftovers).
+
+## Do not
+Re-enable FILL_LIST without a real Blaze address-vector allocator.

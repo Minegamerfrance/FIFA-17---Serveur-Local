@@ -1,0 +1,10 @@
+v46 — surgical FAIL_9 only + calls still run
+============================================
+
+Résultat IMPORTANT:
+- FAIL_9→21 worked: recv HelloDone (n=5 + n=4)
+- Then iState 28→29→30 SECURE WITHOUT any ★ CKE on wire
+- Then FAIL_13 (4109)
+- HelloDone not flagged (split record: hs at buf[0] when n=4)
+
+→ v47: detect Done on n=4; force 22; reject fake 28..30 until CKE

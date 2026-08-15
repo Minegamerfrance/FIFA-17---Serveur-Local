@@ -1,0 +1,69 @@
+{
+  "moduleBase": "0x140000000",
+  "moduleSize": 288722944,
+  "strings": {
+    "getServerInstanceHttp": [
+      "0x1438919c0"
+    ],
+    "getServerInstance": [
+      "0x14388e983",
+      "0x1438919a8",
+      "0x1438919c0"
+    ],
+    "ServerInstanceInfo": [
+      "0x14389166b",
+      "0x143891680"
+    ],
+    "X-BLAZE-ERRORCODE": [
+      "0x143882298"
+    ],
+    "ProtoHttpPost() returned %d": [
+      "0x1439b757c"
+    ],
+    "ProtoHttpPost returned %d": [
+      "0x1439b8edc"
+    ],
+    "[XmlDecoder].readValue: Type contains unknown member.": [
+      "0x143ac0c80"
+    ],
+    "REDIRECTOR_NO_MATCHING_INSTANCE": [
+      "0x143891a18"
+    ],
+    "REDIRECTOR_UNKNOWN_CONNECTION_PROFILE": [
+      "0x143891aa8"
+    ],
+    "INTERNAL_IPPORT": [
+      "0x143891468"
+    ],
+    "ServiceResolver.resolveService": [
+      "0x143883508"
+    ],
+    "BlazeHub": [
+      "0x1438830b8",
+      "0x1438830d8",
+      "0x143883100"
+    ],
+    "standardSecure_v4": [
+      "0x14388e930"
+    ],
+    "Fire2Connection": [
+      "0x1438831a0"
+    ],
+    "OriginRequestAuthCodeSync": [
+      "0x143936158",
+      "0x143936180"
+    ],
+    "OriginGetDefaultPersona": [
+      "0x1439362d8"
+    ],
+    "OriginCheckOnline": [
+      "0x1439362f8"
+    ],
+    "LoginStateMachineImpl": [
+      "0x14389fd78"
+    ],
+    "LoginStateMachine": [
+      "0x14389fde0"
+    ]
+  }
+}

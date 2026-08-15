@@ -1,0 +1,13 @@
+v42 — find LIVE by iState@+272 + probe
+======================================
+
+HOST string hits exist but +256 AF_INET check fails (copies / layout / heap skip).
+
+- Probe first HOST hits (u16@256, port, i32@272)
+- Adopt if host + iState@+272 looks like ProtoSSL states
+- Also try sockaddr pattern 02 00 a4 ce near host
+- Broad scan: include large rw regions
+- PARENT: log arg0 probes first calls
+
+Résultat: connect-sa = vrai struct (af/port/iState/pSecure) mais host vide → rejeté.
+→ v43: adopt sans host + soft CN

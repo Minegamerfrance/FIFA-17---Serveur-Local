@@ -1,0 +1,29 @@
+=== STP4216_PROTOCOL_AUDIT ===
+verdict=DECRYPT_TOTAL_FAIL
+why=keyModes={'none': 68} protocolVersion='3'
+protocolVersion(@version)=3
+sdkVersion(<Version>)=9.12.1.2
+decryptOk=0 decryptFail=68
+keyModes={'none': 68}
+idMatchOk=1 idMatchFail=1
+eventWithId=0 loginAsResponse=False
+IsManualOffline=None
+connected=None
+GoOnlineCode=None
+isOnline=None
+loginEvent=False fields={}
+middlewareReason=None
+postWincodes=False
+authCodeSeen=False
+profile={}
+profileMissing=['UserIndex', 'UserId', 'PersonaId', 'Persona', 'AvatarId', 'Country', 'IsUnderAge', 'IsSubscriber', 'IsTrialSubscriber', 'SubscriberLevel', 'GeoCountry', 'CommerceCountry', 'CommerceCurrency', 'IsSteamSubscriber']
+presence={}
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17'}
+--- Facility → Recipient ---
+--- Chronology ---
+1. Challenge
+2. Challenge
+3. ChallengeResponse
+4. ChallengeResponse
+5. ChallengeAccepted
+6. ChallengeAccepted

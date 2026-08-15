@@ -1,0 +1,8 @@
+v49 — safe key inject via CN locate
+====================================
+
+Résultat: no crash; ★ safe inject @5074; set 28→29→30 SECURE; ZERO CKE; FAIL_13.
+Diagnostique: st 28/29/30 SKIP _ProtoSSLUpdateSendClientKey (only 22/23/24 build+flush).
+Setting 28 bypasses send entirely.
+
+→ v50: safe inject + force classic 22 (SEND_KEY), allow 22-24 only until CKE

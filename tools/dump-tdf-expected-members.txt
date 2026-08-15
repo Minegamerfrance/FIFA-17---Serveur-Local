@@ -1,0 +1,22 @@
+# Expected ServerInstanceInfo / IpAddress wire members (Heat2 XML, lowercase)
+# Calibrated from: FIFA17.exe string pool + classic Redirector heat TDF (HOST+IP+PORT)
+
+## ServerInstanceInfo
+- address          (ServerAddressInfo → union ServerAddress)
+- secure
+- name
+- defaultdnsaddress
+- messages
+- trialservicename
+
+## ServerAddress (union) — REDIRECTOR_ADDR_STYLE
+- member (default): <INTERNAL_IPPORT>…</INTERNAL_IPPORT> as arm tag
+- valu: <val>INTERNAL_IPPORT</val> + <valu>…</valu>
+
+## IpAddress (Redirector::IpAddress — EXE: hostname @ 0x143891ba0)
+- hostname
+- port
+- ip               # optional; omit by default (not in Redirector IpAddress string cluster)
+
+## Frozen reply Content-Type
+application/xml

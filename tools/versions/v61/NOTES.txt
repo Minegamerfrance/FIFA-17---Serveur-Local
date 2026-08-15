@@ -1,0 +1,6 @@
+v61:
+- Disabled Stalker completely (too brittle, causes thread desyncs/buffer latencies).
+- Added static disassembler dumps for `0x61321de`, `0x612f38f`, `0x61261da` based on v59 fuzzy BT.
+- Kept `strHost` sticky fix and the `0x612d548` BFP4F patch.
+
+Goal: Identify the `call <VerifyCert>; test eax, eax; jne <jump_table_setup>` sequence statically so we can patch the specific call without stalker overhead.

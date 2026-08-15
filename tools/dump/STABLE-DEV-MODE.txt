@@ -1,0 +1,35 @@
+Stable dev mode (recommended for UT iteration):
+
+1) Start backend:
+   npm start
+
+2) Start FIFA and enter UT menus.
+
+3) Run:
+   .\tools\run-pipeline-probe.ps1
+
+What this mode does:
+- HOOK_XREFS=1
+- PIPE_SEED_HOST=1
+- PIPE_FORCE_ADDR=1
+- PIPE_FORCE_SECURE=1 (keep TLS telemetry on :10041; stable debug baseline)
+- PIPE_FORCE_HOST=127.0.0.1 (CAS A stable; gosredirector.ea.com regressed to CAS B)
+- BLAZE_TLS_TRACE=1 in frida-ssl-bypass (default): log [blaze-tls] send/recv/SetState/close on :10041
+- Do NOT regen certs until Frida names the first failing function
+- Passive cert dump: tools/dump/BLAZE-CERT-INSPECT.txt (no SAN/IP; RSA1024 self-signed CN=gosredirector)
+- PIPE_FILL_LIST=0 (unsafe)
+- BLAZE_OBSERVE_ONLY=1 (disables Frida FORCE_BLAZE + INJECT_BLAZE_ADDR hijacks)
+
+Why:
+- Keeps deterministic CAS A trigger from pipeline hook.
+- Avoids extra forced connect rewrites that add noise and side-effects.
+- Keeps logs cleaner while iterating FUT/Nucleus behavior.
+
+Gate before preAuth / Fire2:
+- Must see [pipe] SAFE+resolve + ★★★ BLAZE_CONNECT + VERDICT CAS A.
+- Then must see [blaze-tls] BLAZE_ALERT_BLOCKED desc=42 + BLAZE_CKE + iState>=SECURE.
+- PLAINTEXT/XML peek miss is normal; do not treat it as redirector failure
+  if FORCE_ADDR still fires.
+- If ReferenceError on __FORCE_* tokens → fix tools/run-ssl-bypass.py first.
+- If alert 42 reaches the server (bad_certificate) → blaze-tls block is OFF;
+  restore blazeFd tracking + alert swallow on send/WSASend.

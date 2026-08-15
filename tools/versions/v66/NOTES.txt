@@ -1,0 +1,6 @@
+v66: Prevent FAIL_9 state from ever being set
+- In v65, we patched `je -> jmp` at 0x612f39c and 0x61261eb, but FAIL_9 still occurred.
+- Analysis showed that `FAIL_9` (0x1009) is set inside `call 0x1461334d0`, which is called from `0x1461321d9`.
+- By the time the function returned to 0x61261da, the `iState` field on the connection object was ALREADY set to 0x1009 (FAIL_9), so patching control flow after this point did not prevent the socket from being closed.
+- The new approach is to patch `je 0x1461321de` at `0x61321c8` to `jmp 0x1461321de` (eb 14).
+- This unconditionally skips the call to `0x1461334d0`, completely preventing the FAIL_9 state from ever being set on the connection object.

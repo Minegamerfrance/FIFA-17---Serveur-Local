@@ -1,0 +1,432 @@
+v113-FIRE2 — ÉTAT DE RÉFÉRENCE (remplace l’ancien diagnostic 0x802c0000)
+=========================================================================
+
+Le blocage 0x802c0000 a été dépassé. Ne plus repartir de ce diagnostic.
+
+État prouvé
+-----------
+- Redirector + ProtoSSL Blaze OK
+- Connexion Blaze + ClientKeyExchange OK
+- Header Fire2 validé (pas classic)
+- PreAuth Util/7 APPLY err=0
+- Jeu stable si Util/2 Ping est ignoré (PING_SWALLOW)
+- Les anciennes replies Ping plantaient avec l'ancien codec TDF incorrect
+- FUT API :8000 atteinte
+- Prochain verrou : absence Auth/Login après PreAuth
+
+Contraintes (ne pas violer)
+---------------------------
+- Pas de retour au header classic
+- Pas de softHost / SetState / tryAdopt sur Blaze
+- Pas de hooks Frida lourds (vt1_work, FrameUnpack hot, mid-fn, backtrace)
+- PING_SWALLOW reste le défaut stable ; le Ping corrigé se teste uniquement
+  avec `npm run start:ping-codec-test`
+- Pas de reprise aveugle des valeurs ME3 (ASRC 300294, CIDS ME3, QOSS riche)
+
+Prochaine cible
+---------------
+Auth/Login Blaze après PreAuth (obs lean), sans casser la stabilité ping-swallow.
+
+Instrumentation prête
+----------------------
+- PREAUTH_CRASH_ISO conserve trois hooks prologue légers :
+  PreAuth APPLY, RpcRequest ctor et LoginStateMachine.
+- Après `PreAuth APPLY lean err=0`, chercher :
+  `AUTH_LEAN RPC_ENQUEUE ... afterPreAuth=1`
+  ou `AUTH_LEAN LoginStateMachine ... afterPreAuth=1`.
+- Aucun backtrace, hook mid-fn ou accès Fire2 sensible n'a été ajouté.
+
+Test Auth CIDS isolé
+--------------------
+- Baseline stable : `BLAZE_PREAUTH_CIDS` vide, donc `CIDS=[]`.
+- Test : `$env:BLAZE_PREAUTH_CIDS="1,9"` avant `npm start`.
+- Test Windows sans ambiguïté : `npm run start:auth-test`.
+- Seule la liste CIDS change ; ASRC/RSRC restent vides et PING_SWALLOW reste actif.
+- Chercher `AUTH_LEAN Authentication enqueue` ou `LoginStateMachine after PreAuth`.
+
+Origin/Nucleus lean
+-------------------
+- Le test CIDS=[1,9] est négatif : réponse décodée, aucun Auth/Login.
+- Observation sans patch des imports `OriginCheckOnline`,
+  `OriginGetDefaultUser`, `OriginGetDefaultPersona` et
+  `OriginRequestAuthCodeSync`.
+- Chercher `ORIGIN_LEAN ENTER/LEAVE` et comparer les codes `ret32`.
+- Les imports directs sont absents (`imports=0`). Hooks internes ajoutés :
+  Persona/Online wrapper RVA `0x70da3b0`, AuthCode wrapper RVA `0x70db3c0`.
+- Résultat : `PersonaOnlineWrapper` est appelé avant le redirector et retourne
+  0 ; `RequestAuthCodeWrapper` n'est jamais appelé.
+
+Test ASRC isolé
+---------------
+- Candidat trouvé dans FIFA17.exe : `FIFA17DEFAULTID`, près de
+  `BlazeEntitlementList`.
+- `npm run start:asrc-test` force uniquement
+  `ASRC="FIFA17DEFAULTID"` et remet `CIDS=[]` dans le processus serveur.
+- Résultat : réponse correctement décodée, aucun crash, mais toujours aucun
+  Auth/Login. ASRC seul est négatif.
+- `npm run start:baseline` remet explicitement ASRC/RSRC vides et `CIDS=[]`.
+- Chercher ensuite `RequestAuthCodeWrapper`, `LoginStateMachine after PreAuth`
+  ou une requête Blaze composant 1.
+
+Test Auth combiné
+-----------------
+- `npm run start:auth-combo-test` envoie uniquement
+  `ASRC="FIFA17DEFAULTID"`, `CIDS=[1,9]`, `RSRC=""`.
+- ASRC et CIDS sont stables séparément ; ce test vérifie leur dépendance
+  éventuelle sans réintroduire STIM, QOSS riche ou identifiants ME3.
+- Résultat : correctement décodé et stable, mais toujours aucun Auth/Login.
+
+Observation Nucleus froide
+---------------------------
+- Hooks prologue bornés ajoutés sur quatre fonctions trouvées par xrefs locaux :
+  requête de jeton `0x72335e0`, login failed `0x7234390`, login success
+  `0x72344e0`, nucleus connect `0x7237830`.
+- Observer `AUTH_FLOW_LEAN` ; aucune valeur de retour n'est modifiée.
+
+Test RSRC isolé
+---------------
+- `npm run start:rsrc-test` envoie uniquement
+  `RSRC="FIFA17DEFAULTID"`, avec `ASRC=""` et `CIDS=[]`.
+- Résultat : correctement décodé et stable, mais aucune entrée Auth/Nucleus.
+
+Observation porte connexion
+----------------------------
+- Hooks froids ajoutés sur `Fire2_CONN_RESULT` (`0x6db72f0`) et
+  `ConnectCbJob` (`0x6e193d0`).
+- Le log APPLY affiche aussi `connSt(b28)`.
+- Chercher `CONN_GATE_LEAN`, `NATIVE_CONNECTED` et vérifier que b28 passe
+  nativement de 1 à 2. Aucune écriture n'est effectuée.
+- Résultat : `Fire2_CONN_RESULT(err=0)` passe bien b28 de 1 à 2, puis
+  PreAuth APPLY voit `connSt(b28)=2`. Fire2 n'est pas le verrou.
+
+Observation handoff PréAuth vers Origin UI
+------------------------------------------
+- Hooks froids et bornés sur le scheduler post-PréAuth `0x6e1e460`, le
+  gestionnaire Show/Hide Origin login `0x6f1e1c0`, le gate `DISABLE_EBISU`
+  `0x6f33e90` et les événements réseau login `0x6f14080`.
+- Chercher `POST_PREAUTH_LEAN` et `ORIGIN_UI_LEAN`. Aucune mutation.
+- Résultat : le scheduler post-PréAuth est bien exécuté. Le désassemblage
+  prouve qu'il programme Util/2 Ping (composant 9, commande 2), pas Auth.
+
+Correction codec TDF / test du Ping
+------------------------------------
+- Cause concrète trouvée dans `TdfReader/TdfWriter.read/writeCompact` :
+  l'ancien codec utilisait 7 bits dans le premier octet d'un entier TDF.
+  Blaze TDF en utilise 6, puis 7 bits pour les octets suivants.
+- Tout entier >=64 était donc mal encodé, notamment `PingResponse.STIM`.
+- Codec corrigé et validé sur neuf vecteurs (`npm run test:tdf`).
+- `STIM` envoie maintenant l'heure Unix en secondes dans un uint32 natif.
+- Test isolé : `npm run start:ping-codec-test` (baseline PreAuth,
+  `PING_SWALLOW=0`).
+- Hooks froids ajoutés :
+  `PING_CALLBACK_LEAN` @ `0x6e1d290` et
+  `PING_LISTENER_LEAN` @ `0x6fcf789`.
+- Succès attendu : `PING_CALLBACK_LEAN ... err=0x0 ... STIM=...`, puis au
+  moins un `PING_LISTENER_LEAN`. Observer ensuite Auth/Login/Origin.
+
+Résultat live Ping corrigé / prochaine isolation
+------------------------------------------------
+- FIFA reçoit et décode bien la reply Util/2 :
+  `PING_CALLBACK_LEAN err=0x0 ... STIM=1785179724`.
+- Le premier listener de connexion est ensuite appelé, suivi de huit
+  listeners no-op ; le jeu plante pendant cette notification, environ 242 ms
+  après l'envoi de la reply.
+- Le payload serveur et le décodeur TDF ne sont donc plus la cause immédiate.
+- Le premier listener cible `0x6db73e0`. Il diffuse trois sous-listes puis
+  utilise `Fire2+0xc58` comme `ServiceResolver`, sans garde nulle avant
+  l'accès à `resolver+0x18`.
+- Sondes observe-only ajoutées et limitées à l'intérieur du callback Ping :
+  `PING_BROADCAST_LEAN`, `FIRE2_PING_READY_LEAN`,
+  `PING_TAIL_LEAN ResolverClean`, `PING_TAIL_LEAN PingFinalizer`, ainsi que
+  les sorties du callback et des fonctions.
+- Au prochain run, `resolver=0x0` suivi de l'absence de
+  `FIRE2_PING_READY_LEAN LEAVE` prouvera le déréférencement nul. Ne pas
+  ajouter de null-guard avant cette preuve.
+
+Résultat live du Resolver / A-B instrumentation
+------------------------------------------------
+- Le Resolver n'est pas nul : `resolver=0x96001e0`,
+  `pending=0x98870b0`. L'hypothèse du null-deref `Fire2+0xc58` est rejetée.
+- Le crash arrive dans la troisième diffusion (`Fire2+0x908`) :
+  `PING_BROADCAST_LEAN count=15`, après au moins sept listeners dont la
+  cible observée est le no-op `0x1465734f0`, sans sortie de la diffusion.
+- Le dispatcher observé `0x146fcf789` n'est qu'un trampoline de six octets
+  (`mov rax,[rcx] ; jmp [rax+8]`). Un Interceptor répété sur ce trampoline
+  minuscule peut lui-même perturber le jeu ; il faut éliminer cet effet avant
+  tout patch du client.
+- Nouveau A/B : `PIPE_PING_OBS=0` par défaut désactive toutes les sondes Ping
+  et laisse le chemin post-PréAuth intact. Le serveur conserve le Ping TDF
+  corrigé. Si le jeu ne plante plus, l'instrumentation était la cause ; s'il
+  plante encore, le défaut natif du chemin Ping est confirmé.
+
+Résultat A-B sans sondes Ping / capture d'exception
+----------------------------------------------------
+- FIFA plante encore avec `PIPE_PING_OBS=0`, environ 207 ms après la reply
+  Ping. L'Interceptor du trampoline n'est donc pas la cause du crash.
+- La reply reste propre (`err=0`, STIM uint32 décodé lors des runs observés).
+- `PIPE_CRASH_OBS=1` installe désormais uniquement un gestionnaire
+  d'exception Frida, armé après le succès PréAuth. Il ne modifie aucun
+  registre et retourne `false` afin de transmettre l'exception au jeu.
+- Chercher `★★★ CRASH_EXCEPTION` : le log contient type, PC/RVA, instruction,
+  opération/adresse mémoire et registres principaux. Garder
+  `PIPE_PING_OBS=0` pour ne pas réintroduire les hooks fragiles.
+
+Crash natif exact / correctif sentinelle opt-in
+-----------------------------------------------
+- Exception prouvée :
+  `RVA 0x61638b5: mov rax,[rcx-8]`, avec `rcx=1`, lecture fautive
+  `0xfffffffffffffff9`.
+- Le helper `RVA 0x61638b0` traite déjà `rcx=0` comme une valeur vide et
+  retourne `-1`. La valeur `1` est une sentinelle invalide pour son
+  déréférencement.
+- `PIPE_CRASH_FIX=1` est un correctif expérimental strictement borné :
+  uniquement pour cette access violation exacte, après PréAuth réussi et
+  avec `rcx==1`, le gestionnaire reprend à la branche native null-return
+  `RVA 0x61638ea` puis retourne `true`.
+- Aucun octet de FIFA17.exe n'est modifié. La valeur par défaut reste
+  `PIPE_CRASH_FIX=0`.
+- Le log ajoute aussi `CRASH_BACKTRACE`. Succès du correctif :
+  `CRASH_SENTINEL_FIX applied`, puis absence de fermeture immédiate et,
+  idéalement, nouvelles requêtes Auth/Nucleus/FUT.
+
+Freeze après le premier correctif / nettoyage Resolver ciblé
+-------------------------------------------------------------
+- Le run avec `PIPE_CRASH_FIX=1` ne constitue pas un succès : après la
+  reprise du premier helper, FIFA déclenche une seconde access violation
+  dans `RVA 0x61631ee: mov rax,[rdx-8]`, cette fois avec `rdx=1`.
+- La backtrace situe les deux sentinelles dans le nettoyage
+  `ServiceResolver` appelé après le Ping, depuis le callsite Fire2
+  `RVA 0x6db7464`, et non dans le décodage de la reply ou les listeners.
+- Continuer à contourner les helpers mémoire un par un serait trop large et
+  instable. `PIPE_RESOLVER_CLEAN_FIX=1` remplace donc uniquement cet appel
+  post-Ping de cinq octets (`e8 f7 8e 03 00`) par cinq NOP en mémoire.
+- Le patch refuse de s'appliquer si les octets ne correspondent pas
+  exactement. L'instruction native suivante conserve la remise à zéro du
+  slot pending du Resolver.
+- Le test doit utiliser `PIPE_CRASH_FIX=0`, afin que l'ancien contournement
+  du premier helper ne masque plus le résultat. Aucun octet du fichier
+  FIFA17.exe sur disque n'est modifié.
+
+Résultat live du nettoyage Resolver / premier handoff Auth
+----------------------------------------------------------
+- `POST_PING_RESOLVER_CLEAN_FIX` s'applique et supprime les deux access
+  violations à sentinelle. FIFA continue après le Ping.
+- Nouveau trafic natif observé : six requêtes Util/1 `fetchClientConfig`,
+  puis Authentication/70, puis deux requêtes HTTP FIFA Live sur `:8000`
+  (`disabledregion.json` et `metadata_21.json`).
+- Authentication/70 (`0x46`) est `logout`, pas une commande de login.
+  L'ancien catch-all Auth lui renvoyait à tort une structure d'utilisateur
+  connecté. Il renvoie désormais un Reply vide et la trace l'affiche sous
+  le nom `logout`.
+- Les exceptions Windows avec la signature `0x406d1388` servent uniquement
+  à nommer des threads. Elles sont maintenant étiquetées comme bénignes au
+  lieu de `CRASH_EXCEPTION`.
+- Le run a été interrompu par `Ctrl+C` juste après les deux requêtes FIFA
+  Live. Le prochain essai doit rester attaché au moins 30 secondes afin
+  d'observer la suite réelle Auth/Nucleus/FUT.
+
+Premier écran natif « reconnecter à Origin » / gate CheckOnline
+---------------------------------------------------------------
+- FIFA affiche pour la première fois son message normal de reconnexion aux
+  serveurs EA au lieu de planter ou geler.
+- Un appui sur reconnecter répète les six Util/1 puis Authentication/70
+  `logout`; aucun `OriginRequestAuthCodeSync`, Nucleus ou login Blaze.
+- La chaîne statique à `RVA 0x70da3b0` est exactement
+  `OriginCheckOnline entered`. Le retour `0` est un `OriginErrorT` de succès;
+  l'état en ligne distinct est écrit dans l'octet pointé par `arg0`.
+- `PIPE_ORIGIN_ONLINE_FIX=1` est un nouveau A/B opt-in. Après PreAuth
+  uniquement, si `OriginCheckOnline` réussit, il remplace cet octet par `1`.
+  Le fichier FIFA17.exe n'est pas modifié.
+- Succès attendu : `ORIGIN_ONLINE_FIX applied`, puis entrée dans
+  `RequestAuthCodeWrapper` et commande Authentication autre que `logout`.
+
+Deuxième écran natif « version périmée » / gate AuthCode
+--------------------------------------------------------
+- Le A/B `PIPE_ORIGIN_ONLINE_FIX=1` est concluant : après PréAuth,
+  `OriginCheckOnline` écrit maintenant `online=1` et FIFA entre pour la
+  première fois dans `OriginRequestAuthCodeSync`.
+- L'appel retourne `0xA2000003`. Immédiatement après, FIFA envoie seulement
+  Authentication/70 `logout` et affiche
+  `TXT_ORIGIN_GAME_VERSION_OUT_OF_DATE`. Ce message ne vient donc pas de la
+  version Blaze renvoyée par le fake server.
+- Le chemin reste stable : aucune access violation, et FIFA Live contacte
+  encore `:8000` plus tard.
+- Le wrapper AuthCode possède au moins cinq paramètres. Le probe journalise
+  désormais `ORIGIN_AUTHCODE_DISASM` ainsi que `ORIGIN_AUTHCODE_ARGS
+  ENTER/LEAVE` pour six slots, avec plage mémoire, octets et vue ASCII.
+- Ne pas forcer le retour à zéro avant d'avoir identifié le tampon de sortie
+  et sa taille : un succès sans AuthCode valide pourrait provoquer un crash
+  ou une requête Blaze vide.
+
+Contrat AuthCode confirmé / correctif local opt-in
+--------------------------------------------------
+- Le run suivant confirme deux sorties adjacentes de huit octets :
+  `a2` est le slot pointeur AuthCode et `a3` son slot longueur. Les deux
+  restent à zéro lorsque `Origin::OriginSDK::RequestAuthCodeSync` renvoie
+  `0xA2000003`. `a4=0` est transmis par le wrapper comme paramètre d'entrée.
+- Le wrapper retourne lui-même `0xA0010000` uniquement si le singleton SDK
+  n'est pas initialisé; ce n'est pas le chemin pris pendant le test.
+- `PIPE_ORIGIN_AUTHCODE_FIX=1` est un nouveau A/B strictement borné. Après
+  PréAuth, uniquement pour l'erreur exacte `0xA2000003`, il écrit le pointeur
+  vers `LOCAL-FIFA17-AUTH`, la longueur 17, puis remplace le retour par zéro.
+- Le correctif reste désactivé par défaut. Il ne modifie pas FIFA17.exe sur
+  disque. Le même run journalise également les instructions du caller après
+  l'appel afin de confirmer comment FIFA consomme les deux sorties.
+- Succès attendu : `ORIGIN_AUTHCODE_FIX applied`, puis Authentication/0x98
+  `originLogin` (ou une autre commande Auth non-logout). Toute exception doit
+  être conservée dans le log avant d'élargir le correctif.
+
+AuthCode accepté par le caller / écran version encore présent
+--------------------------------------------------------------
+- Le correctif s'applique bien : retour final zéro, pointeur AuthCode non nul
+  et longueur 17.
+- Le caller à `RVA 0x72373be` stocke d'abord le retour dans `objet+0x950`.
+  Si le retour, le pointeur et le second slot sont valides, il stocke ensuite
+  le pointeur AuthCode dans `objet+0x948`. Les valeurs injectées satisfont ces
+  contrôles; il n'y a aucune exception.
+- Malgré cela, FIFA envoie encore Authentication/70 `logout` et conserve
+  l'écran `TXT_ORIGIN_GAME_VERSION_OUT_OF_DATE`. Le choix de cet écran se
+  situe donc au-dessus du wrapper AuthCode, pas dans son retour direct.
+- Le probe recherche maintenant en mémoire les références directes et
+  indirectes au token exact `TXT_ORIGIN_GAME_VERSION_OUT_OF_DATE`, y attache
+  une trace et ajoute la backtrace complète du caller AuthCode. Chercher
+  `ORIGIN_VERSION_XREF HIT` et `ORIGIN_AUTHCODE_CALLER BT_`.
+
+Chaîne supérieure AuthCode identifiée
+-------------------------------------
+- Le scan du token retourne `pointerSlots=0 codeHits=0` : les libellés UI
+  passent par le gestionnaire de ressources et n'ont pas de xref machine
+  direct exploitable.
+- La backtrace précise du wrapper AuthCode fournit en revanche cette chaîne
+  stable : `0x72373be -> 0x717d664 -> 0x71b5b9c -> 0x71b7edf ->
+  0x71b37b6 -> 0x6f7b9ed`.
+- Les cinq return sites supérieurs sont maintenant désassemblés avant
+  attachement et observés sous `ORIGIN_AUTH_CHAIN HIT`. Le premier doit
+  recevoir dans `RAX` le pointeur `LOCAL-FIFA17-AUTH`; les niveaux suivants
+  révéleront le test qui transforme encore le résultat en `logout`.
+
+Deuxième contrôle Origin / branche exacte « version périmée »
+--------------------------------------------------------------
+- Le premier niveau est maintenant totalement identifié. Après avoir accepté
+  le pointeur `LOCAL-FIFA17-AUTH`, il appelle la méthode virtuelle
+  `[rsi->vtable+0x80]`, puis compare immédiatement son retour à
+  `0xA2000003` à `RVA 0x717d6a6`.
+- Si les valeurs sont égales, FIFA place un libellé dans l'objet UI et appelle
+  son gestionnaire avec le code `14`; c'est la branche native qui produit
+  l'écran « version périmée ». Cette erreur est distincte du retour déjà
+  corrigé de `OriginRequestAuthCodeSync`.
+- Les faux niveaux de backtrace L2-L5, dont un worker très fréquent avant
+  PréAuth, ont été retirés du probe pour éviter le bruit et la perturbation.
+- `PIPE_ORIGIN_VERSION_FIX=1` est un A/B opt-in borné à l'instruction
+  post-appel `RVA 0x717d6a6`. Après PréAuth seulement, et uniquement si EAX
+  vaut exactement `0xA2000003`, il remplace EAX par zéro avant le `cmp`.
+  Aucun octet du fichier FIFA17.exe n'est modifié.
+- Le probe journalise aussi la cible virtuelle réellement résolue et
+  désassemble la branche non-expirée. Succès attendu :
+  `ORIGIN_VERSION_FIX applied`, disparition de l'écran périmé, puis une
+  commande Authentication autre que `70/logout` ou une nouvelle gate native
+  clairement observable.
+
+Run sans activation du correctif / gate antérieure
+---------------------------------------------------
+- Le run du 28/07 a été lancé sans
+  `$env:PIPE_ORIGIN_VERSION_FIX="1"` : le bandeau confirme
+  `ORIGIN_VERSION_FIX=0`, donc il ne teste pas le correctif.
+- Il n'existe en plus aucune ligne `ORIGIN_VERSION_GATE HIT`. Après
+  l'acceptation de `LOCAL-FIFA17-AUTH`, FIFA a donc quitté le chemin avant le
+  `cmp 0xA2000003`, par le helper appelé à `RVA 0x717d68d`.
+- Le probe observe maintenant ce helper et son résultat à `RVA 0x717d692`.
+  Une valeur non nulle sera marquée `EARLY_ORIGIN_ERROR_PATH`; zéro sera
+  marqué `CONTINUE_TO_VERSION_GATE`. Aucun retour supplémentaire n'est encore
+  modifié à ce niveau.
+- L'exécutable local est déjà le dernier client PC connu : signature
+  Electronic Arts valide, ProductVersion `17.0.3175939.0`, date PE
+  10/06/2017 locale, correspondant à la Title Update 9 PC publiée le
+  09/06/2017. Une autre copie du jeu n'est pas la prochaine étape.
+
+Gate booléenne Origin confirmée / correctif borné
+--------------------------------------------------
+- Avec `PIPE_ORIGIN_VERSION_FIX=1`, le helper à `RVA 0x5e280b0` est
+  désassemblé : il s'agit d'un comparateur insensible à la casse. À l'appel
+  exact `RVA 0x717d68d`, FIFA compare le tampon local `[rsp+0x28]` au littéral
+  `"true"` sur huit octets.
+- Le résultat observé est `0xffffff8c`, soit `-116`. Cette valeur correspond
+  précisément à un premier octet local nul comparé au caractère `t`
+  (`0 - 116`) : la valeur booléenne locale est vide, pas une version client
+  trop ancienne.
+- Ce retour non nul provoque `jne 0x717d749`, puis Authentication/70 logout,
+  avant que `ORIGIN_VERSION_GATE` puisse être atteint.
+- Lorsque `PIPE_ORIGIN_VERSION_FIX=1`, le probe remplace maintenant ce retour
+  par zéro uniquement à l'instruction post-comparaison `RVA 0x717d692`,
+  après PréAuth. Le log attendu est `ORIGIN_AUTH_SETUP_FIX applied`, puis
+  `ORIGIN_VERSION_GATE HIT`. Le fichier FIFA17.exe reste inchangé.
+
+Premier login Blaze natif / Authentication 10
+----------------------------------------------
+- Le correctif booléen est concluant : FIFA passe
+  `ORIGIN_AUTH_SETUP_FIX`, atteint `ORIGIN_VERSION_GATE` avec un retour
+  naturel zéro, puis envoie pour la première fois `Authentication/10`.
+  L'écran « version périmée » est remplacé par « serveurs indisponibles ».
+- La requête déchiffrée est stable et entièrement décodée :
+  `AUTH="LOCAL-FIFA17-AUTH"`, `EXTB=<blob 0>`, `EXTI=0`. Il s'agit du login
+  par jeton Origin de ce client, malgré les anciens tableaux de noms de
+  commandes qui plaçaient `originLogin` à `0x98`.
+- L'ancienne réponse générique contenait seulement `BUID`, `MAIL`, `ANON`,
+  `UID`, `DSNM`, `PID` et `SESS`. FIFA attend trente secondes puis envoie
+  `Authentication/70 logout`.
+- `Authentication/10` possède maintenant une réponse dédiée de forme
+  `LoginResponse` : `AGUP`, `LDHT`, `NTOS`, `PCTK`, une liste `PLST` avec
+  persona active (`DSNM/LAST/PID/STAS/XREF/XTYP`), `PRIV`, `SKEY`, `SPAM`,
+  `THST`, `TSUI`, `TURI` et `UID`. Les autres commandes Authentication ne
+  changent pas.
+- Succès attendu : après `REP originTokenLogin`, FIFA doit envoyer une
+  nouvelle commande (persona login, Util/postAuth ou UserSessions) au lieu
+  d'attendre puis d'envoyer directement `logout`.
+
+Run baseline du 28/07 : login non testé
+---------------------------------------
+- `npm run start:baseline` active `PING_SWALLOW=1`. Le serveur reçoit
+  PréAuth puis `Util/2 ping`, journalise `PING_SWALLOW msgNum=1 (no reply)`
+  et FIFA n'envoie aucune autre commande Blaze avant la fermeture.
+- Ce run n'atteint ni les correctifs Origin ni `Authentication/10`; il ne
+  permet donc pas d'évaluer la nouvelle `LoginResponse`.
+- Le prochain essai doit utiliser `npm run start:ping-codec-test`, qui
+  répond au ping et avait déjà permis d'atteindre `Authentication/10`, avec
+  `PIPE_RESOLVER_CLEAN_FIX=1` conservé côté probe.
+
+Authentication/10 : ancienne forme refusée, FullLoginResponse
+-------------------------------------------------------------
+- Le run suivant atteint bien `Authentication/10`. Le journal réseau local
+  prouve que le serveur renvoie le nouveau paquet de 176 octets, puis FIFA
+  attend exactement trente secondes et envoie `Authentication/70 logout`.
+  La réponse est donc présente sur le fil mais sa forme n'est pas acceptée.
+- Les définitions BlazeSDK de référence distinguent `LoginResponse`
+  (`PLST/SKEY/UID` au niveau principal) et `FullLoginResponse` pour le login
+  Origin (`SESS` imbriqué). La requête FIFA contient précisément le jeton
+  Origin `AUTH` ainsi que `EXTB/EXTI`.
+- La réponse dédiée de la commande 10 utilise maintenant la forme
+  `FullLoginResponse` : `AGUP/LDHT/NTOS/PCTK/PRIV`, puis `SESS` contenant
+  `BUID/FRST/KEY/LLOG/MAIL/PDTL/UID`, suivi de
+  `SPAM/THST/TSUI/TURI`. `PDTL` contient la persona active.
+- Le nom de trace devient `originAuthCodeLogin`. L'encodage TDF, la
+  structure imbriquée et l'en-tête Fire2 complet sont couverts par
+  `npm run test:tdf`.
+
+Authentication/10 : retour LoginResponse (preuve binaire)
+---------------------------------------------------------
+- ChatGPT a confirmé dans FIFA17.exe : `LoginResponse` présent,
+  `FullLoginResponse` count = 0. Donc SESS/PDTL n'est pas le contrat de
+  cette version. Le binaire expose aussi `LoginData::mPersonaDetailsList`
+  (liste PLST) et les RPCs Auth `expressLogin` / `guestLogin` (pas de
+  `login` / `originLogin` / `silentLogin` dans la table de noms).
+- Réponse Auth/10 par défaut : `LoginResponse` flat
+  `AGUP/LDHT/NTOS/PCTK/PLST[{DSNM,LAST,PID,STAS,XREF,XTYP}]/PRIV/SKEY/
+  SPAM/THST/TSUI/TURI/UID`, avec `endStruct` sur chaque entrée PLST.
+- Après la reply, envoi des notifications UserSessions comme BlazeServer
+  après SilentLogin/LoginPersona : `NotifyUserAdded` (cmd 2) puis
+  `UserUpdated` (cmd 5). Hypothèse : le logout à 30s était un timeout
+  d'attente de session, pas seulement un mauvais TDF.
+- A/B : `AUTH_REPLY_PROFILE=full` restaure temporairement SESS/PDTL.
+- Succès attendu : après REP Auth/10, FIFA envoie une commande suivante
+  (listPersonas / entitlements / Util postAuth / UserSessions) au lieu
+  d'attendre 30s puis logout.

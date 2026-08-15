@@ -1,0 +1,13 @@
+v30 — no Interceptor, site patches only (anti-crash)
+====================================================
+
+Après crash v29:
+- Ne plus Interceptor.attach(0x6129eb0) — instable / hot path
+- Ne plus FORCE iState→22 automatiquement
+- Après ClientHello: je→jmp + call→mov eax,0 (site cert only)
+- flag +288, strHost CN, block alert 42, block close soft
+- Laisser la state machine avancer seule
+
+Résultat: CRASH encore après recv cert 765.
+Patches site (mov eax,0 + je→jmp + call1) = chemin succès avec état incomplet → crash.
+→ v31: AUCUN Memory.patchCode — test MD5 + flag seul

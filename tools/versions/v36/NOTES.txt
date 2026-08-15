@@ -1,0 +1,11 @@
+v36 — full site patches (no strHost, no Interceptor)
+====================================================
+
+Stable base: noext SHA1 + flag once
+v35: je→jmp → no alert but iState=4106
+v36 adds:
+- cert-call → mov eax,0 (skip fail side-effects)
+- call1 → mov eax,0 + NOP jg
+- on fail state after cert: clear → 22 SEND_KEY once
+Résultat: patches OK, 4106 avant FORCE (setTimeout trop lent).
+→ v37: Interceptor onLeave @0x612d4c0 → ret 22 + iState=22 (sync)

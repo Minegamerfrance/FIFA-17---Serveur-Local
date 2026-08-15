@@ -1,0 +1,61 @@
+{
+  "name": "fifa17-fake-server",
+  "version": "0.1.0",
+  "description": "Local/fake EA backend emulator for FIFA 17 Ultimate Team (PC)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "start:baseline": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"PING_SWALLOW=1\"&& tsx src/index.ts",
+    "start:auth-test": "set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"BLAZE_PREAUTH_CIDS=1,9\"&& set \"PING_SWALLOW=1\"&& tsx src/index.ts",
+    "start:asrc-test": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"BLAZE_PREAUTH_ASRC=FIFA17DEFAULTID\"&& set \"PING_SWALLOW=1\"&& tsx src/index.ts",
+    "start:auth-combo-test": "set \"BLAZE_PREAUTH_RSRC=\"&& set \"BLAZE_PREAUTH_ASRC=FIFA17DEFAULTID\"&& set \"BLAZE_PREAUTH_CIDS=1,9\"&& set \"PING_SWALLOW=1\"&& tsx src/index.ts",
+    "start:rsrc-test": "set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_RSRC=FIFA17DEFAULTID\"&& set \"PING_SWALLOW=1\"&& tsx src/index.ts",
+    "start:ping-codec-test": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"PING_SWALLOW=0\"&& tsx src/index.ts",
+    "start:auth-noreply-test": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"PING_SWALLOW=0\"&& set \"AUTH_REPLY_PROFILE=none\"&& set \"AUTH_NOTIFY=0\"&& tsx src/index.ts",
+    "start:auth-origin-layer": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"PING_SWALLOW=0\"&& set \"AUTH_REPLY_PROFILE=plst\"&& set \"AUTH_NOTIFY=0\"&& tsx src/index.ts",
+    "start:auth-origin-notify": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"PING_SWALLOW=0\"&& set \"AUTH_REPLY_PROFILE=plst\"&& set \"AUTH_NOTIFY=1\"&& tsx src/index.ts",
+    "start:auth-origin-notify-delay": "set \"BLAZE_PREAUTH_CIDS=\"&& set \"BLAZE_PREAUTH_ASRC=\"&& set \"BLAZE_PREAUTH_RSRC=\"&& set \"PING_SWALLOW=0\"&& set \"AUTH_REPLY_PROFILE=plst\"&& set \"AUTH_NOTIFY=1\"&& set \"AUTH_NOTIFY_DELAY_MS=750\"&& tsx src/index.ts",
+    "start:current": "powershell -NoProfile -ExecutionPolicy Bypass -File \".\\tools\\start-current-server.ps1\"",
+    "stop:current": "powershell -NoProfile -ExecutionPolicy Bypass -File \".\\tools\\stop-current-server.ps1\"",
+    "start:lsx": "tsx src/lsx/standalone.ts",
+    "test:lsx-crypto": "tsx -e \"import { assertLsxCryptoVectors } from './src/lsx/crypto.ts'; assertLsxCryptoVectors(); console.log('LSX crypto OK');\"",
+    "test:lsx-responses": "tsx tools/lsx-response-test.ts",
+    "test:fut-persistence": "tsx tools/fut-persistence-test.ts",
+    "build": "tsc -p tsconfig.json",
+    "db:up": "prisma dev start fifa17 || prisma dev --name fifa17 --detach",
+    "db:down": "prisma dev stop fifa17",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx src/fut/seed-cli.ts",
+    "smoke": "tsx tools/smoke-test.ts",
+    "test:tdf": "npm run build&& node tools/tdf-codec-test.mjs",
+    "test:matchmaking": "tsx tools/matchmaking-test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.9.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pg": "^8.22.0",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3",
+    "selfsigned": "^5.5.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.21",
+    "@types/pg": "^8.20.0",
+    "@types/uuid": "^10.0.0",
+    "prisma": "^7.9.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,9 @@
+v50 — inject key + classic SEND_KEY(22)
+=======================================
+
+Résultat:
+- safe inject OK (ce27… sz=128)
+- set 22 → PARENT leave SEND_FINISH
+- SendData @0x2710 = 16 03 00 00 07 0b … (empty Client CERTIFICATE, not CKE!)
+- iSendSize=12 but never flushed on wire → FAIL_13
+→ v51: flush SendData via send(); server skips client Certificate; less PARENT fighting

@@ -1,0 +1,10 @@
+v51 — flush SendData + server skip client Certificate
+=====================================================
+
+Résultat:
+- ★ FLUSH n=12 hs=11 OK (empty client Certificate on wire)
+- key inject SKIPPED (CN@0x1242 not strict strCommon)
+- stayed on state 22 → no CKE built
+- FIFA likely: 22=send client cert, 23=send key, 24=finish
+
+→ v52: inject like v49; after FLUSH hs=11 → set 23 (not 22)

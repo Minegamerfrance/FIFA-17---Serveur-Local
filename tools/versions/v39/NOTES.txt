@@ -1,0 +1,6 @@
+v39 — wait HelloDone, no early nudge
+====================================
+
+Résultat: FAIL_10 (4106) after Cert, HelloDone never recv.
+Site skip-calls do not fix FAIL_10 (set elsewhere / polluted verify).
+→ v40: noext_mod Aim4kill OID + soft strHost + PARENT fail→21 (stay RECV)

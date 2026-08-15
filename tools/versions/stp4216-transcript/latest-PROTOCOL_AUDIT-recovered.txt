@@ -1,0 +1,67 @@
+FIFA_TO_STP <LSX><Request recipient="EbisuSDK" id="2"><GetConfig version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="2" sender="EbisuSDK"><GetConfigResponse Config="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="3"><GetProfile index="0" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="3" sender="EbisuSDK"><GetProfileResponse IsSubscriber="true" PersonaId="33068179" AvatarId="" Country="US" CommerceCountry="US" GeoCountry="US" UserId="33068179" Persona="STEAMRIP" IsUnderAge="false" CommerceCurrency="USD"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="4"><GetSetting SettingId="IS_IGO_ENABLED" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="4" sender=""><GetSettingResponse Setting="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="5"><GetGameInfo GameInfoId="FREETRIAL" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="5" sender=""><GetGameInfoResponse GameInfo="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="6"><GetGameInfo GameInfoId="LANGUAGES" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="6" sender=""><GetGameInfoResponse GameInfo="ar_SA,cs_CZ,da_DK,de_DE,en_US,es_ES,es_MX,fr_FR,it_IT,nl_NL,no_NO,pl_PL,pt_BR,pt_PT,ru_RU,sv_SE,tr_TR,zh_TW"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="7"><GetSetting SettingId="ENVIRONMENT" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="7" sender=""><GetSettingResponse Setting="production"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="8"><GetSetting SettingId="IS_IGO_AVAILABLE" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="8" sender=""><GetSettingResponse Setting="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="9"><IsProgressiveInstallationAvailable ItemId="" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="9" sender=""><IsProgressiveInstallationAvailableResponse ItemId="" Available="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="10"><GetProfile index="0" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="10" sender="EbisuSDK"><GetProfileResponse IsSubscriber="true" PersonaId="33068179" AvatarId="" Country="US" CommerceCountry="US" GeoCountry="US" UserId="33068179" Persona="STEAMRIP" IsUnderAge="false" CommerceCurrency="USD"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="11"><GetGameInfo GameInfoId="LANGUAGES" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="11" sender=""><GetGameInfoResponse GameInfo="ar_SA,cs_CZ,da_DK,de_DE,en_US,es_ES,es_MX,fr_FR,it_IT,nl_NL,no_NO,pl_PL,pt_BR,pt_PT,ru_RU,sv_SE,tr_TR,zh_TW"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="12"><GetSetting SettingId="LANGUAGE" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="12" sender=""><GetSettingResponse Setting="fr_FR"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="13"><GetGameInfo GameInfoId="FREETRIAL" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="13" sender=""><GetGameInfoResponse GameInfo="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="14"><SetDownloaderUtilization Utilization="1" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="14" sender=""><ErrorSuccess Code="0" Description=""/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="15"><GetSetting SettingId="ENVIRONMENT" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="15" sender=""><GetSettingResponse Setting="production"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="16"><GetGameInfo GameInfoId="FREETRIAL" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="16" sender=""><GetGameInfoResponse GameInfo="false"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="17"><GetInternetConnectedState version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="17" sender=""><InternetConnectedState connected="0"/></Response></LSX>
+
+FIFA_TO_STP <LSX><Request recipient="" id="18"><GetProfile index="0" version="3"/></Request></LSX>
+
+STP_TO_FIFA <LSX><Response id="18" sender="EbisuSDK"><GetProfileResponse IsSubscriber="true" PersonaId="140718521015232" AvatarId="" Country="US" CommerceCountry="US" GeoCountry="US" UserId="33068179" Persona="STEAMRIP" IsUnderAge="false" CommerceCurrency="USD"/></Response></LSX>

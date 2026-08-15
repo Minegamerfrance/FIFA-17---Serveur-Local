@@ -1,0 +1,17 @@
+v71: Neutralize FAIL_9 at the source stub
+
+The problem:
+- The certificate is processed in `0x1461334d0`. Inside, it likely calls `_VerifyCertificate`.
+- If the verification fails, it jumps to a `switch` table stub at `0x1461326fa`.
+- This stub does `mov eax, 0x1009` and then jumps to a common error handler which sets `pState->iState = eax`.
+- This happens before `0x1461334d0` returns, which means the state is ALREADY set to FAIL_9 when we get back to `61321de`, `612f38f`, and `61261da`.
+- Our `je->jmp` patches in v65 ignored the error code returned by the functions, but `iState` was already ruined, so the SSL state machine got stuck or broke.
+
+The fix:
+- We patched the bytes of the `FAIL_9` stub at `0x1461326fa` to `b8 00 00 00 00` (`mov eax, 0`).
+- Now, when the jump happens, `eax` is 0 instead of `0x1009`.
+- The common error handler receives `eax = 0`, so it either doesn't update `iState` to an error state, or sets it to 0 (which might be handled as no-op or valid).
+- The certificate processing function returns success (0), and the callers correctly advance the state machine.
+- We also removed the v70 logging and diagnostic hooks on `0x1461334d0`.
+
+We keep the `je->jmp` patches at `0x612f39c` and `0x61261eb` as a safety net in case the returned 0 is still processed as an error in some branches.

@@ -1,0 +1,17 @@
+verdict=DECRYPT_TOTAL_FAIL
+why=keyModes={'none': 68} protocolVersion='3'
+protocolVersion=3
+sdkVersion=9.12.1.2
+keyModes={'none': 68}
+IsManualOffline=None
+connected=None
+GoOnlineCode=None
+isOnline=None
+loginEvent=False
+loginSender=None
+loginFields={}
+middlewareReason=None
+postWincodes=False
+profileMissing=['UserIndex', 'UserId', 'PersonaId', 'Persona', 'AvatarId', 'Country', 'IsUnderAge', 'IsSubscriber', 'IsTrialSubscriber', 'SubscriberLevel', 'GeoCountry', 'CommerceCountry', 'CommerceCurrency', 'IsSteamSubscriber']
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17'}
+chronology=Challenge → Challenge → ChallengeResponse → ChallengeResponse → ChallengeAccepted → ChallengeAccepted

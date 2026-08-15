@@ -1,0 +1,9 @@
+v73:
+- Analyzed v72 log: `0x1461325e1` is the epilogue of `0x146132000`, not a common error handler.
+- This proves `0x146132000` returns `0x1009` (FAIL_9) directly in `eax`.
+- The caller assigns this return value to `iState` (as seen in v71 when `eax=0` resulted in `iState=0`).
+- Therefore, `eax` is the next state.
+- Patched the FAIL_9 jump-table stub (`0x1461326fa`) to `mov eax, 0x15` (21, `ST_RECV_HELLO`).
+- This keeps the state machine in `RECV_HELLO` so it can process `ServerHelloDone` and transition to `SEND_CKE`.
+- Removed the `disasmRange` for the epilogue.
+- Kept the `je -> jmp` patches at `0x612f39c` and `0x61261eb`.

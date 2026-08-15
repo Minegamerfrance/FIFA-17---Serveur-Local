@@ -1,0 +1,4 @@
+v68:
+- Analysis of v67 failure: Neutering 0x1461334d0 (ProtoSslSetError) with `xor eax, eax; ret` broke the state machine because this function is actually a generic state setter (like `ProtoSslSetState`). It is needed to transition between states (e.g., after receiving ServerHello). Neutering it completely caused the connection to freeze or shut down prematurely.
+- Fix: Hook 0x1461334d0 using Frida's `Interceptor.replace`. If `newState == 0x1009` (FAIL_9), block the call and return immediately, preventing the state transition to FAIL_9. For any other state, call the original function.
+- We also restored the two `je -> jmp` patches at 0x612f39c and 0x61261eb (from v65) to ensure that the error code returned by the certificate parsing functions is ignored by the callers, so the process continues successfully.

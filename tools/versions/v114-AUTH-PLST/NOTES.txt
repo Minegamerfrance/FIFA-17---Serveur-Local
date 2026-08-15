@@ -1,0 +1,893 @@
+v114-AUTH-PLST — CHECKPOINT rollback-safe (28/07/2026 01:05)
+=============================================================
+
+Objectif
+--------
+Figer l'état Auth/10 avant d'explorer plus loin (hooks Frida post-reply,
+autres formes TDF). Si on casse quelque chose : restaurer depuis ce dossier.
+
+État prouvé (héritage v113-FIRE2 + avancée Auth)
+------------------------------------------------
+- Redirector + ProtoSSL Blaze OK, CKE OK, header Fire2 OK
+- PreAuth Util/7 APPLY err=0
+- PING_SWALLOW stable ; ping reply = crash (~200 ms) — ne pas toucher
+- Origin online + auth-code + version gate → Authentication/10 atteint
+- Auth/10 REQ : AUTH="LOCAL-FIFA17-AUTH", EXTB vide, EXTI=0
+
+Auth/10 réponse actuelle (ce checkpoint)
+----------------------------------------
+Profil : `login-response-plst` (défaut)
+
+LoginResponse flat (FIFA17.exe a LoginResponse + LoginData::mPersonaDetailsList ;
+FullLoginResponse count = 0) :
+
+  AGUP, LDHT, NTOS, PCTK,
+  PLST[{DSNM,LAST,PID,STAS=2,XREF,XTYP}],
+  PRIV, SKEY, SPAM, THST, TSUI, TURI, UID
+
+Puis notifications UserSessions (comme BlazeServer après SilentLogin) :
+  - 7802/2 NotifyUserAdded
+  - 7802/5 UserUpdated
+
+A/B : AUTH_REPLY_PROFILE=full → ancien SESS/PDTL
+
+Résultat du run 01:03
+--------------------
+- Profil PLST + notifs bien envoyés (serveur)
+- FIFA attend exactement ~30 s puis Authentication/70 logout
+- Aucune RPC Blaze entre REP Auth/10 et logout
+- FUT :8000 connect ~35 s (hors Blaze)
+- Donc PLST+notifs insuffisants ; échec ailleurs (decode / LoginSM / hors Blaze)
+
+Contraintes (ne pas violer)
+---------------------------
+- Pas de header classic
+- Pas de softHost / SetState / tryAdopt Blaze
+- Pas de hooks Frida lourds (vt1_work, FrameUnpack hot, mid-fn, BT massifs)
+- PING_SWALLOW défaut ; ping reply seulement via start:ping-codec-test
+- Pas de valeurs ME3 aveugles (ASRC 300294, CIDS/QOSS riches)
+
+Fichiers sauvegardés ici
+------------------------
+  src/blaze/handlers.ts
+  src/blaze/trace.ts
+  src/shared/tdf.ts
+  src/shared/blazePacket.ts
+  tools/tdf-codec-test.mjs
+  frida-hook-offline-xrefs.js
+  frida-ssl-bypass.js
+  frida.log (dernier run v113/pipeline)
+  NOTES-v113-FIRE2.txt (copie NOTES parent)
+  RESTORE.txt
+
+Restaurer
+---------
+Voir RESTORE.txt
+
+Prochaine cible (post-checkpoint)
+---------------------------------
+Observer côté FIFA ce qui se passe après réception Auth/10 (LoginStateMachine,
+erreur TDF, timer 30 s Origin/Nucleus) SANS modifier le comportement jeu.
+
+Post-checkpoint (live tree, défaut inchangé)
+--------------------------------------------
+- Frida AUTH_LEAN : fenêtre 40s après enqueue Auth/10 (auth10AgeMs, logout path,
+  LoginSM hits). Défaut reply inchangé.
+- A/B env (ne change rien si non set) :
+    AUTH_REPLY_PROFILE=plst|full|persona
+    AUTH_NOTIFY=0  → pas de NotifyUserAdded/UserUpdated
+- Restaurer le checkpoint = RESTORE.txt (handlers PLST+notify d'origine).
+
+A/B persona+notify=off (01:19) — même échec
+-------------------------------------------
+- Profil réellement chargé : `session-info BUID/FRST/KEY/LLOG/MAIL/PDTL/UID`
+  notify=off (pas de 7802/2 ni 7802/5).
+- logout auth10AgeMs=30018, loginSMHits=0 — identique à PLST+notifs.
+- Formes déjà éliminées pour le timeout 30s :
+  1) LoginResponse PLST + UserSessions notifies
+  2) FullLogin SESS/PDTL
+  3) SessionInfo persona sans notifs
+- Donc le corps TDF de la reply n'est probablement pas le seul levier :
+  matching/consommation de la reply Fire2, timer Auth hors Blaze, ou
+  étape Nucleus/HTTP parallèle. Le log startup `origin-full-login-v2`
+  était stale (index.ts) — ignoré si AUTH_REPLY_PROFILE ligne blaze OK.
+
+Layer test AUTH_REPLY_PROFILE=none (01:24) — DÉCISIF
+----------------------------------------------------
+- Aucune reply Blaze à Auth/10 → logout auth10AgeMs=30024 quand même.
+- Le timer 30s N'ATTEND PAS le corps TDF. Couche Origin/Nucleus/matching.
+
+Suivi Origin/Nucleus (post-none)
+--------------------------------
+- Frida : AUTH10_RPC_DISPATCH armé après enqueue Auth/10 (observe si reply
+  dispatchée). AUTH_FLOW_LEAN (NucleusToken/LoginFailed/Success/Connect)
+  logge auth10AgeMs dans la fenêtre.
+- Nucleus stub : log `★★ METHOD host= path=` sur chaque hit.
+- Retest : `npm run start:auth-origin-layer` (plst, notify=off, reply on wire)
+  + probe Origin fixes. Chercher :
+    AUTH10_RPC_DISPATCH Auth/10 REPLY seen  → reply consommée
+    AUTH_FLOW during Auth/10 window        → Nucleus path
+    NUCLEUS_CONNECT / nucleus ★★            → HTTP accounts
+    rpcDispatchHits=0 + authFlowHits=0     → timeout Blaze sans consommation
+
+RpcDispatch observe (prouvé) + LoginState lean (28/07 ~01:50)
+-------------------------------------------------------------
+- Avec plst + AUTH_NOTIFY=0 : Auth/10 REPLY vue à auth10AgeMs≈8, error=0.
+  Puis silence ~30s → logout. loginSMHits=0, authFlowHits=0.
+  → Blaze consomme Auth/10 OK ; le timer n'est PAS un échec de matching Fire2.
+- Run 01:53 : loginStateHits=0 sur slot[1] — mauvais levier.
+  BT Origin auth-code (avant Auth/10) tombe DANS LoginStateLogin slot[4]
+  0x71b58e0 (pdata 0x71b58e0..0x71b6b60, ~4.7KB). Popup FR « serveurs EA
+  indisponibles » = UI après logout 30s, pas une panne Blaze (Blaze était OK).
+- Hooks live basculés sur slot[4] pdata : Connect/VersionCheck/LoadConfig/
+  Login/LoginComplete/Logout + resume parents 0x71b7e90 / 0x71b3740.
+- Retest : même `start:auth-origin-layer` + probe. Chercher :
+    LOGIN_STATE_LEAN ENTER LoginStateLogin … (avant Auth/10)
+    LOGIN_STATE_LEAN LEAVE LoginStateLogin auth10AgeMs=? 
+    LOGIN_STATE during Auth/10 window / LOGIN_RESUME_LEAN après REPLY
+    LoginComplete → on avance ; silence + Logout à 30s → callback Auth/10 mort
+
+Run slot[4] (01:58) — DÉCISIF
+--------------------------------
+- LoginStateLogin poll ~16 ms avec ret=0x2 (BUSY) de Auth/10+18ms → +30002ms.
+  Jamais LoginComplete. À 30002ms ret=0x45b17d28 puis logout + LEAVE ret=0x1.
+- LoadConfig/Connect qui avancent renvoient souvent un STATE_DESC (VA ~0x14395b…).
+- Live : throttle BUSY (heartbeat 5s) + LOGIN_BUSY_PROBE (dump obj+0..0xC0,
+  u32=1/2/30000) + LOGIN_STATE_DISASM (imm 2 / rets) au 1er ENTER Login.
+- Retest : mêmes commandes. Chercher :
+    LOGIN_BUSY_PROBE leave#… qw={…}   → quel champ reste « wait »
+    LOGIN_STATE_DISASM imm2=[…]
+    class=BUSY2 heartbeat / left BUSY → STATE_DESC|FAIL1
+
+BUSY probe (02:08) + piste Ebisu
+--------------------------------
+- Objet Login figé : +8=2, +80="TXT_NOT_LOGIN_TO_EBISU", +98=0x80000000.
+- DisableEbisuGate tourne avant PreAuth (ret=0) — Ebisu non désactivé.
+- Live : PIPE_EBISU_FIX=1 → force DisableEbisuGate ret=1 ; clear Login+0x98
+  une fois en BUSY post-Auth/10 ; EBISU_XREF LEA sur TXT_NOT_LOGIN / DISABLE_EBISU.
+- Retest :
+    $env:PIPE_ORIGIN_ONLINE_FIX="1"
+    $env:PIPE_ORIGIN_AUTHCODE_FIX="1"
+    $env:PIPE_ORIGIN_VERSION_FIX="1"
+    $env:PIPE_EBISU_FIX="1"
+    .\tools\run-pipeline-probe.ps1
+  + npm run start:auth-origin-layer
+  Chercher : EBISU_FIX DisableEbisuGate, EBISU_FIX cleared Login, EBISU_XREF HIT,
+  left BUSY / LoginComplete (succès) vs même logout 30s (insuffisant).
+
+Ebisu fix run (12:53) — insuffisant
+------------------------------------
+- +0x98 clear OK et persiste ; +8=2 + TXT_NOT_LOGIN restent ; logout 30s.
+- DisableEbisuGate jamais ENTER (force ret inutilisé). leaSites=0.
+- Ret PTR pending = LoginObj-0xC00 (ex. 0x45bd7d28 vs 0x45bd89d8).
+- Live : LOGIN_PENDING_PROBE / LOGIN_CB_PROBE (+0xa0/+0xa8/+0xb8/+0xc0) +
+  dump retPTR ; RESUME plus de spam à 29.5s.
+- Chercher : LOGIN_PENDING_PROBE retPTR, LOGIN_PENDING_DELTA, LOGIN_CB_PROBE,
+  ★30000 sur pending, vtable0 callbacks.
+
+Pending/CB probe (12:59) — DÉCISIF
+-----------------------------------
+- retPTR DELTA=0xcb0 (pas 0xC00). File jobs active8=1 ; entrées sizeOrCmd 0xa/0x10/0x14.
+- obj+0xa0/+0xb8 = callback NULL ; obj+0xa8 vtable0=0x6f03ef0 (zone Origin UI).
+- Live : LOGIN_JOBQ dump jobs +0x10/+0x28/+0x40/+0x58 ; hook LOGIN_CB_VT0 @0x6f03ef0.
+- Chercher : LOGIN_JOBQ entry ★AUTH10?, LOGIN_CB_VT0 #, LOGIN_CB_VT0_DISASM.
+
+JOBQ post-REPLY + RpcJob_send (live tree)
+-----------------------------------------
+- Après AUTH10_RPC_DISPATCH Auth/10 REPLY : LOGIN_JOBQ_POST
+    #1 reason=dispatch-leave
+    #2 reason=dispatch+50ms
+    #3 reason=first-BUSY-after-REPLY
+  Comparer active8 + sizeOrCmd 0xa vs dump pré-REPLY (retPTR_jobs#).
+- AUTH10_RPCJOB_SEND : observe RpcJob_send dans la fenêtre Auth/10 (pas de BT).
+- Retest (mêmes env Origin+Ebisu) :
+    $env:PIPE_ORIGIN_ONLINE_FIX="1"
+    $env:PIPE_ORIGIN_AUTHCODE_FIX="1"
+    $env:PIPE_ORIGIN_VERSION_FIX="1"
+    $env:PIPE_EBISU_FIX="1"
+    .\tools\run-pipeline-probe.ps1
+  + npm run start:auth-origin-layer
+  Chercher : LOGIN_JOBQ_POST, AUTH10_RPCJOB_SEND, active8 change post-REPLY.
+
+Run 13:18 — JOBQ_POST cassé (ptr recycle)
+------------------------------------------
+- Pré-REPLY OK : retPTR=0x45ac7d28 active8=1 jobs 0xa/0x10/0xa/0x14.
+- REPLY Auth/10 consommée (rpcDispatchHits=1, error=0) à +8 ms.
+- LOGIN_JOBQ_POST q=0xa0 puis q=0x2 → AV : Frida recycle NativePointer retval ;
+  leanLastRetPtr muté en imm BUSY. Aucun dump post-REPLY valide.
+- AUTH10_RPCJOB_SEND armé mais 0 hit (Auth/10 déjà envoyé avant arm).
+- Logout 30s inchangé. Fix live : clonePtr + leanJobQueuePtr stable + skip bad-q.
+- Retest : LOGIN_JOBQ_POST doit montrer q=0x45….. et active8 comparable.
+
+Run 13:21 — DÉCISIF : JOBQ figée après REPLY
+--------------------------------------------
+- Pré-REPLY (+2ms) et POST (dispatch-leave +0ms, BUSY +0/+16ms) : **identique**
+    retPTR=0x45b47d28 active8=1
+    entries 0xa / 0x10 / 0xa / 0x14 (mêmes job ptrs)
+- Blaze consomme Auth/10 (error=0) mais **ne complete pas** les jobs Login.
+- 0 AUTH10_RPCJOB_SEND ; logout 30s ; loginSMHits=0.
+- Prochaine cible : chemin de complétion RpcJob / callback Login après RpcDispatch
+  (pas le body TDF A/B).
+
+JOB complete obs (live tree)
+----------------------------
+- Au enqueue Auth/10 : arm AUTH10_JOBCOMPLETE
+    * disasm runtime RpcDispatch → hook ≤10 callees bande Blaze
+    * ConnectCbJob lean
+- Sur Auth/10 REPLY : AUTH10_REPLY_BT (1×), AUTH10_JOBSNAP pre/post,
+  AUTH10_JOBDIFF, AUTH10_DISPATCH_CALL pendant le dispatch, snap +100ms/+1s.
+- Retest (mêmes env) :
+    $env:PIPE_ORIGIN_ONLINE_FIX="1"
+    $env:PIPE_ORIGIN_AUTHCODE_FIX="1"
+    $env:PIPE_ORIGIN_VERSION_FIX="1"
+    $env:PIPE_EBISU_FIX="1"
+    .\tools\run-pipeline-probe.ps1
+  + npm run start:auth-origin-layer
+  Chercher : AUTH10_DISPATCH_CALL, AUTH10_JOBDIFF CHANGED|UNCHANGED,
+  AUTH10_REPLY_BT, AUTH10_CONNECT_CB.
+
+Run 13:27 — DÉCISIF : handler manquant
+--------------------------------------
+- AUTH10_JOBDIFF dispatch / +100ms / +1s = **UNCHANGED** (jobs+ctx figés).
+- Pendant REPLY, 4 callees hit :
+    0x6db5030, 0x6dbe710, 0x6db5d60, 0x6dbee10
+  Callee listé mais **JAMAIS appelé** : **0x6df0df0** ← branche non prise.
+- BT : FrameUnpack(0x6db862a) → STATE_TICK → RpcDispatch.
+- ctx hex contient ASCII **"repm" + "Online"** (pas un RpcJob Blaze classique).
+- 0 AUTH10_CONNECT_CB ; logout 30s.
+- Prochaine cible : pourquoi RpcDispatch skip 0x6df0df0 sur Auth/10 REPLY
+  (condition / pending job match / decode).
+
+Skip 0x6df0df0 obs (live tree)
+-----------------------------
+- AUTH10_SKIP_MAP / SKIP_DISASM autour du call 0x6df0df0
+- AUTH10_SKIP_GUARDS : jcc qui sautent après le call
+- Mid-fn : AUTH10_SKIP_JCC + PATH FALLTHROUGH|TAKEN (Auth/10 REPLY only)
+- Hook prologue 0x6df0df0 : AUTH10_SKIP_HANDLER_ENTER (expect 0)
+- AUTH10_SKIP_HANDLER_DISASM tête handler
+- Retest mêmes env Origin+Ebisu. Chercher :
+    AUTH10_SKIP_DISASM, AUTH10_SKIP_JCC, AUTH10_SKIP_PATH TAKEN|FALLTHROUGH,
+    AUTH10_SKIP_HANDLER_ENTER (0 = confirmé skip).
+
+Crash mid-fn + verdict gate (13:31)
+-----------------------------------
+- Crash pendant Auth/10 REPLY après JOBSNAP pre-dispatch : cause =
+  Interceptor mid-fn sur JCC/fallthrough dans RpcDispatch. **Retiré.**
+- Disasm décisif avant crash :
+    lea eax,[r8-1]; test eax,0xfffffffd; je 0x6db5b0c  → Reply msgType 1|3
+    cmp r8d,2; jne 0x6db5c47 → sinon skip
+    call 0x6df0df0 **uniquement si msgType==2 (Notification)**
+- Donc skip de 0x6df0df0 sur Auth/10 REPLY = **normal** (pas le completer).
+- Live : disasm-only + prologue 0x6df0df0 ; DISPATCH_CALL + args/leave.
+- Prochaine cible : les 4 callees reply-path (pourquoi jobs restent figés).
+
+Run 13:36 — stable, reply-path vu
+---------------------------------
+- Pas de crash. skipHandlerHits=0 (notif skip OK).
+- AUTH10_JOBDIFF dispatch/+100ms/+1s = UNCHANGED ; logout 30s.
+- Reply-path (DISPATCH_CALL) :
+    #1 0x6db5030 r8=msgNum=8 r9=msgType=1 → ret=0x95f26c0 (pending?)
+    #2 0x6dbe710 r8=0xa0 (=payloadLen 160) → decode/copy
+    #3 0x6db5d60 rcx=pending rdx=0 r9=buf → ret=0x14389fc00 (cb?)
+    #4 0x6dbee10 → ret=0xa0 cleanup
+- ★ pending Blaze 0x95f26c0 ≠ jobs Login JOBQ 0x9699470/0x96994c0
+  → Blaze complete un autre objet ; Login JOBQ jamais touchée.
+- Prochaine cible : lien Login JOBQ ↔ RpcJob / callback après 0x6db5d60.
+
+LINK pending↔JOBQ obs (live tree)
+---------------------------------
+- Sur leave 0x6db5030 : AUTH10_LINK_PENDING + SCAN pending↔JOBQ/LoginObj
+  + reverse job→pending / JOBQ→pending
+- Sur leave 0x6db5d60 : AUTH10_LINK_INVOKE + DISASM + JOBDIFF post-invoke
+- Sur leave 0x6dbe710 : AUTH10_LINK_DECODE
+- Retest mêmes env. Chercher :
+    AUTH10_LINK pending ≠|===, AUTH10_LINK_SCAN HIT|no-JOBQ,
+    AUTH10_LINK_INVOKE retCb=, AUTH10_JOBDIFF post-invoke.
+
+Run 13:44 — DÉCISIF : pending isolé, cb via vtable+0x30
+-------------------------------------------------------
+- pending 0x9631720 ≠ JOBQ jobs ; **tous** LINK_SCAN = no-JOBQ/login-ptr.
+- JOBDIFF post-invoke / +100ms / +1s = UNCHANGED ; logout 30s ; notify=off.
+- INVOKE_DISASM 0x6db5d60 :
+    [rcx+0x58]=err ; [rcx+0x50]=payloadSize
+    si [rcx+0x70] (user cb) ≠ 0 → path 0x6db5eb0
+    sinon call **[vtable+0x30]** (lea rdx,[rcx+0x68])
+- retCb=0x14389fc00 →[0]=0x146e155c0 (zone CM / 0x6e155c0)
+- pending vtable 0x14389f2b8 →[0]=0x146e4b4a0
+- Prochaine cible : user-cb slot pending+0x70 + résultat de vtable+0x30
+  (pourquoi Login JOBQ n’est jamais notifiée).
+
+VT30 + CB slot obs (live tree)
+------------------------------
+- AUTH10_PENDING_SLOTS (+48..+78) à find-pending / invoke-enter / leave / req-ctor
+- AUTH10_VT30 resolve+DISASM+hook [vtable+0x30] ; ENTER/LEAVE/BT ; scan ret→JOBQ
+- AUTH10_REQ_CTOR leave dump req hex + slots (cb déjà null à la création ?)
+- Retest mêmes env. Chercher :
+    ★CB_NULL|★CB_SET, AUTH10_VT30_ENTER/LEAVE, VT30_BT, JOBDIFF post-vt30.
+
+Run 13:49 — DÉCISIF : CB jamais posé ; VT30 = parse only
+--------------------------------------------------------
+- req ctor === pending Blaze (même ptr 0x96c24e0).
+- **+0x70 ★CB_NULL dès req-ctor** → jamais de user callback Auth/10.
+- VT30 @0x6e12a60 : `mov rcx,rdx; jmp 0x6e0f8f0` (this=pending+0x68).
+- VT30 ret=0x9882710 stocké dans pending+0x60 ; +0x50=0xa0 ; +0x58=0.
+- JOBDIFF post-vt30 / post-invoke / +1s = **UNCHANGED** ; logout 30s.
+- Donc Blaze « réussit » le RPC (objet réponse) **sans** notifier Login JOBQ.
+- Prochaine cible : qui aurait dû setter +0x70, OU ce qui complete les
+  jobs Login 0xa (hors RpcRequest — couche Login/Origin/UserSessions).
+
+CB vs PreAuth + JOBQ link (live tree)
+-------------------------------------
+- Dump slots Util/7 ctor (★CB_SET?) vs Auth/10 ; poll Auth/10 +0x70 à t+0/5/20ms
+- JOBSTASH : slots+hex chaque job 0xa + SCAN job↔req / req↔JOBQ
+- VT30_BODY_DISASM (cible jmp) + util7 slots au moment VT30
+- Retest mêmes env. Chercher :
+    util7-ctor ★CB_SET|NULL, cb-poll, JOBQ-job→req HIT|no,
+    req→JOBQ HIT|no, VT30_BODY calls.
+
+Run 13:55 — DÉCISIF : +0x70 RpcRequest = fausse piste
+------------------------------------------------------
+- Util/7 **aussi** ★CB_NULL à +0x70 (ctor + après succès : +0x60=réponse, +0x50=0x4a).
+  → PreAuth marche **sans** user-cb RpcRequest ; même modèle Auth/10.
+- Auth/10 : cb-poll t+0/5/20 = toujours NULL ; req↔JOBQ = **aucun** lien.
+- JOBQ-job0 +0x70=0x3f87c3b0 marqué ★CB_SET (layout Login ≠ RpcRequest !).
+  job1 +0x60=2 (BUSY-like) + stateDesc.
+- VT30_BODY @0x6e0f8f0 calls : 0x6db4be0, 0x79abd20, 0x6e06180 (factory TDF).
+- JOBDIFF UNCHANGED ; logout 30s.
+- Prochaine cible : **completion des jobs Login JOBQ** (job0+0x70 / qui
+  devrait les clear), plus le slot +0x70 du RpcRequest Blaze.
+
+LOGIN JOBQ waiter obs (live tree)
+---------------------------------
+- LOGIN_JOBQ_DEEP : kind=WAITER|OBJ (stateDesc / u32+60=2)
+- Hook éventuel job+0x70 code/vt0 → LOGIN_JOBQ_CB_ENTER/BT
+- LOGIN_JOBQ_WAITER snap stash / post-vt30 / post-invoke / +100ms / +1s
+- Retest mêmes env. Chercher :
+    kind=WAITER ★BUSY?, LOGIN_JOBQ_CB_ENTER (0=jamais appelé),
+    waiter u32+60 change post-reply, active8 clear.
+
+Run 14:00 — DÉCISIF : WAITER figé à BUSY=2
+------------------------------------------
+- entries: 0xa | 0x10 | 0xa | 0x14
+- job0 OBJ (+0x70 → obj vt 0x3b8ea98, ascii «ap MOU») ; hook vt FAIL
+  (on a accroché la vtable .rdata, pas vt[0]=0x65734f0).
+- job1 **WAITER** u32+60=**2 ★BUSY?** ; +58 stateDesc→code **0x7175440** ;
+  +68→**0x71772c0** ; +70=null.
+- WAITER u32+60=2 et active8=1 **identiques** stash→post-vt30→+1s.
+- 0 LOGIN_JOBQ_CB_ENTER ; logout 30s ; notify=off.
+
+LOGIN_WAITER_METH + job0.vt[0] fix (live tree)
+---------------------------------------------
+- Hook static : WaiterStateDesc0 @0x7175440, WaiterStateDesc1 @0x71772c0
+  → LOGIN_WAITER_METH ENTER/LEAVE (+ BT 1er hit) ; snap si waiterU60 change.
+- Fix CB : arm **vt[0]** (code) via Instruction.parse ; static @0x65734f0.
+- Retest mêmes env. Chercher :
+    LOGIN_WAITER_METH hits (0=jamais appelés — autre chemin),
+    LOGIN_JOBQ_CB_ENTER tag=static-job0.vt[0]|job0+70.vt[0],
+    waiterU60 ★CHANGED / active8 clear post-reply.
+
+Run 14:06 — DÉCISIF : stateDesc jamais appelés
+----------------------------------------------
+- LOGIN_WAITER_METH hooked OK ; **0 ENTER** sur toute la fenêtre Auth/10.
+  → +58/+68 sont des **descripteurs data**, pas le tick appelé pendant BUSY.
+- LOGIN_JOBQ_CB arm FAIL @0x65734f0 (non-exécutable) ;
+  vt[0]→`0xcccccccc…` = pas une vraie méthode.
+- WAITER u32+60=2 + active8=1 figés stash→+1s ; logout 30s.
+
+STATEDESC slots[0..7] + MAM court (live tree)
+---------------------------------------------
+- Dump/hook **tous** slots ★CODE des desc waiter+58/+68, job0, JOBQ.type0
+  (LoginState utilise souvent **slot[4]** — [0] seul était un miss).
+  → STATEDESC_SLOTS / STATEDESC_CALL ENTER|BT|LEAVE
+- isLikelyCodePtr : exige protection **x** (évite arm FAIL non-exec).
+- MAM 1.5s post-REPLY sur waiter+0x60 et JOBQ+0x8 (écritures prioritaires).
+  → LOGIN_WAITER_MAM ; auto-disable timeout / first-write / hit-cap.
+- LOGIN_STATE_DISASM robuste (skip insn invalide) + calls/mems.
+- Retest mêmes env. Chercher :
+    STATEDESC_SLOTS … ★CODE (surtout slot4),
+    STATEDESC_CALL hits pendant BUSY,
+    LOGIN_WAITER_MAM write from=rva=…,
+    LOGIN_STATE_DISASM calls=/mems=.
+
+Run 14:21 — DÉCISIF : 0 write waiter+0x60 ; lecteur JOBQ trouvé
+-------------------------------------------------------------
+- Auth/10 OK → logout 30s ; JOBDIFF UNCHANGED ; MAM **0 write**.
+- MAM reads only :
+    waiter-page from **0x7a97ca0** ;
+    JOBQ-page from **0x718120f** ← voisin Login (poll BUSY).
+- LOGIN_STATE_DISASM :
+    `mov [rsi+0x260], 2` @0x71b5c18 ;
+    nombreux `call [rax+0x60]` ;
+    call **0x717d5d0** ; mems=[].
+- STATEDESC_CALL ~19k : **waiter+68.slot7 @0x66f4e70** = bruit Ant/new
+  (BT FIFAAnimatable) — faux positif partagé.
+  Réels : waiter+58.slot5 @**0x71b7cf0** (34×, this≈JOBQ+0xb0) ;
+  JOBQ.type0.slot7 (8×).
+- Aucun ★CHANGED waiterU60.
+- CRASH_EXCEPTION guard-page @0x718120f pendant MAM (attendu).
+
+BUSY_POLL lean (live tree)
+--------------------------
+- pdata : JobqHeaderGet **0x71811f0**–0x7181224 (insn MAM @0x718120f).
+- Hooks : JobqHeaderGet, LoginCall_717d5d0, WaiterBusySlot5 @0x71b7cf0
+  → BUSY_POLL ENTER/LEAVE/BT + BUSY_POLL_DISASM (runtime).
+- Mid-fn LOGIN_SET_BUSY260 @0x71b5c18 (`[rsi+0x260]=2`).
+- STATEDESC dump-only (plus de mass-arm) ; MAM skipped ; slot7/0x65734f0 filtrés.
+- Retest mêmes env. Chercher :
+    BUSY_POLL_DISASM JobqHeaderGet / LoginCall_717d5d0,
+    BUSY_POLL_BT (qui appelle le getter),
+    WaiterBusySlot5 ret ★BUSY2 vs autre,
+    LOGIN_SET_BUSY260 hits.
+
+Run 14:30 — DÉCISIF : JobqHeaderGet = test vt+0x60 ≥ 2
+-------------------------------------------------------
+- **JobqHeaderGet** disasm (après trampoline Frida) :
+    `[rcx] → call [rax+0x60] → call [rdx+0x60] → cmp eax,2 ; setge al ; ret`
+  1279× **ret=0** (jamais ≥2) ; this≠JOBQ ; a1=stateDesc.
+- **WaiterBusySlot5** 636× ; this=JOBQ+0xb0 ; **ret=JOBQ** (pas 0x2) ;
+  lit/écrit +0x260 ; SET_BUSY260 rsi≈JOBQ+0xcc.
+- **LoginCall_717d5d0** : **0 hit** (chemin froid).
+- LoginStateLogin retourne **PTR JOBQ** (plus ret=0x2) ~5 min ; busyCount=0 ;
+  pas de logout path loggué — mid-fn SET_BUSY260 suspect (comportement changé).
+
+JOBQHDR_VT60 (live tree)
+------------------------
+- **Retiré** LOGIN_SET_BUSY260 mid-fn (restauration comportement BUSY2/logout).
+- Sur JobqHeaderGet : resolve/hook **outer** this→vt+0x60 ;
+  si ret ★PTR → resolve/hook **inner** vt+0x60 (celui du `cmp eax,2`).
+  → JOBQHDR_VT60_RESOLVE / ENTER / LEAVE / BT / DISASM
+- Retest mêmes env. Chercher :
+    JOBQHDR_VT60_RESOLVE outer/inner rva=…,
+    LEAVE ret ★GE2 / ★BUSY2 / ★PTR,
+    LoginStateLogin ret=0x2 revenu,
+    logout ~30s.
+
+Run 14:58 — DÉCISIF : inner JOBQ vt+0x60 retourne 1 (jamais ≥2)
+----------------------------------------------------------------
+- BUSY2 **restauré** (LoginStateLogin ret=0x2) ; SET_BUSY260 absent.
+- **outer** @0x719b1b0 : lookup table (+0x358/+0x50/+0x58) → PTR
+  souvent **JOBQ** 0x45b97d28 (type0=0x14395b8b8) ou autres files.
+- **inner** @0x7196b30 (= JOBQ.type0 +0x60) **9× ret=0x1** :
+    `[rcx]→call[vt+0x60] → call[vt+0x40] → call[vt+8] → map status`
+    status 2 → return 1 ; JobqHeaderGet exige **≥2** → toujours GE2=0.
+- Autres inner (0x65734f0) skip non-code.
+
+JOB_STATUS vt+0x40 / vt+8 (live tree)
+------------------------------------
+- Mid-fn sites @0x7196b54 (call vt+0x40) et @0x7196b63 (call vt+8).
+  → JOB_STATUS_SITE + JOB_STATUS ENTER/LEAVE class=TWO★BUSY|FOUR★done?
+- vt+0x40 ★PTR → arm auto vt+8.
+- Resolve VT60 log throttlé (1×/obj).
+- Retest mêmes env. Chercher :
+    JOB_STATUS_SITE call_vt40 / call_vt8 meth rva=…,
+    JOB_STATUS LEAVE class= (surtout vt8),
+    changement de status post-Auth/10 REPLY.
+
+Run 15:33 — freeze écran «17» = BUSY 30s puis FAIL1
+----------------------------------------------------
+- UI : splash FIFA 17 (écran noir + «17») = attente LoginStateLogin BUSY
+  après page Origin ; **pas** un succès login.
+- Auth/10 OK → BUSY2 ~31s → **FAIL1** → logout/70 (serveur confirmé).
+- LoginStateLoginComplete : **jamais entré**.
+- JOB_STATUS_SITE **FAIL** mid-fn @0x7196b54/0x7196b63 (insn invalide
+  après trampoline Frida) → 0 JOB_STATUS ENTER.
+- inner vt60 toujours **ret=1** ; JobqHeaderGet GE2=0 ; waiter u32+60=2.
+
+JOB_STATUS via JOBQ walk (live tree)
+------------------------------------
+- Mid-fn sites **désactivés**.
+- resolveJobStatusFromJobQueue : walk entries/stash/waiter/job0/+b0
+  → JOB_STATUS_RESOLVE + arm vt8/vt30/vt40 ★CODE.
+- Déclenché : stash Auth/10, outer-ret JOBQ, inner ENTER (cap 12).
+- Retest mêmes env. Chercher :
+    JOB_STATUS_FROM_JOBQ / JOB_STATUS_RESOLVE … ★CODE,
+    JOB_STATUS ENTER/LEAVE class=TWO★BUSY|FOUR★done?,
+    status change post-REPLY.
+
+Run 15:40 — walk rate ; status réel pas touché
+-----------------------------------------------
+- 12× FROM_JOBQ, 17 hooked, **4 ENTER seulement** (objets faux / froids) :
+    entry0.+70.vt8 → ZERO ; entry2.[0].vt8 → ONE ;
+    jobq+b0.vt30/vt40 → PTR (WaiterBusySlot5 / typeDesc).
+- **0× class=TWO★BUSY** — le getter status de la chaîne inner
+  n’est **pas** sur les objets JOBQ entry walkés (éphémère interne).
+- Auth/10 OK → BUSY ~35s → FAIL1 → logout/70 (inchangé).
+
+INNER_STALK (live tree)
+-----------------------
+- Stalker.follow **max 2×** sur inner @0x7196b30, fenêtre **3s** post-REPLY.
+- onCallSummary → INNER_STALK_CALL rva/count ; arm callees rares (count≤6)
+  comme JOB_STATUS tag=stalk.0x….
+- Pas de JOBQ walk pendant stalk. Unfollow+flush sur LEAVE.
+- Retest mêmes env. Chercher :
+    INNER_STALK start/summary/CALL,
+    JOB_STATUS ENTER tag=stalk.0x… class=TWO★BUSY,
+    crash éventuel (si oui → retirer Stalker).
+
+Run 15:45 — DÉCISIF : status getter = 0x719a630 → toujours 2
+-------------------------------------------------------------
+- Stalker OK (2 runs). Chaîne réelle :
+    **0x719a5e0** (call depuis inner+0x28 ≈ vt+0x40) → PTR objet
+    **0x719a630** (call depuis inner+0x36 ≈ vt+8) → **ret=0x2 TWO★BUSY**
+- 0x719a630 : `call [vt+0x20]` puis retourne 2 ; **jamais** 3/4 sur ~275 hits.
+- Freeze « connexion » = même BUSY ~35s → FAIL1 → logout/70.
+- Autres stalk : 0x719b1b0=outer lookup ; 0x6db52e0/0x71a44c0 → 0.
+
+STATUS vt8 + vt+0x20 (live tree)
+--------------------------------
+- Stalker **OFF** (`INNER_STALK_ENABLED=false`).
+- Hooks static : status.vt40 @0x719a5e0, status.vt8 @0x719a630.
+- Sur status.vt8 ENTER : resolve/arm **status.vt20** = [this].vt+0x20
+  → STATUS_VT20_RESOLVE / JOB_STATUS ENTER ★vt20 / DISASM.
+- LEAVE vt8 avec ret≠2 → ★NOT_BUSY2 (signal fort).
+- Retest mêmes env. Chercher :
+    STATUS_VT20_RESOLVE rva=…,
+    JOB_STATUS ★vt20 ret= (bool?),
+    status.vt8 ★NOT_BUSY2 (0=toujours 2),
+    DISASM status.vt20.
+
+Run 15:51 — DÉCISIF : vt20=0 ⇒ vt8 force BUSY=2
+-----------------------------------------------
+- status.vt20 @**0x71a44c0** : **619× ret=0** (ZERO) ; 0× true.
+- status.vt8 : `call [vt+0x20]` ; **test al,al ; je → ret 2**
+  → vt20 false ⇒ **toujours TWO★BUSY** (186×) ; ★NOT_BUSY2=0.
+- vt20 body : singleton `call [vt+0x188]` puis **call 0x6db52e0**
+  (Blaze-neighborhood ; stalk le voyait aussi → 0).
+- Objet status `0x45b777f8` vt=0x14395af80 ; hex +8=1 +18=5.
+- UI : mini freeze « connexion » → écran part → freeze =
+  timeout FAIL1 (~34s) + logout/70 (serveur OK).
+  Mini-freeze partiellement dû au spam Frida (619× BT vt20) — throttle ajouté.
+
+vt20 disasm (complet) — 3 échecs possibles
+------------------------------------------
+1. `status.idx` @**0x6db52e0**(mgr) → index
+   **DISASM** : `mov rax,[rcx+0x788] ; mov eax,[rax+0x4c8] ; ret`
+   → ce n’est PAS un scan : lit le champ **idxField** stocké.
+2. vector `*(mgr+0x788)` +0x340/+0x348 ; **slot[idx]==null → false**
+3. `status.slot` @**0x6db5200**(mgr, **edx=0**) → table `mgr+0x758`
+   (jamais atteint tant que slot null)
+
+Run 15:59 — slot[0] jamais rempli
+---------------------------------
+- STATUS_SLOT_CHANGE : n/a→0x0 une fois ; **jamais non-null**.
+- STATUS_IDX toujours ret=0, n=4, slot@idx=0x0.
+- CALLER_ALT = 0x73c57af/0x73c56ff (thread anim, bruit).
+- Callsite login = 0x71a44f0 (vt20) — même lecture null.
+- Auth/10 OK → logout/70 ~34.5s.
+
+Run 16:08 — DÉCISIF : tab758 OK, slots[] toujours null
+-------------------------------------------------------
+- STATUS_MGR_DUMP first/pre/post Auth10 :
+  slots=[0,0,0,0] ; idxField=0 ; **hub288=4** ;
+  **tab758=[4 ptrs valides]** (connexions existent).
+- STATUS_SLOT_MAM : **0 write** en 8s → personne ne remplit
+  le vecteur vt20. (MAM OFF ensuite — bruit/freeze.)
+- Writer scan idxField : **0x6dfd3e7**, **0x6dffc2d**.
+- STATUS_SLOT @ FAIL1 (~34.6s) retourne tab758[0] — la
+  table +0x758 marche ; le gate vt20 lit l’autre table vide.
+- Petit freeze fin = FAIL1 + splash + LoginAuthScheduler
+  qui tourne encore (pas un crash serveur).
+
+Expérience live : PIPE_STATUS_SLOT_POKE=1 (défaut)
+-------------------------------------------------
+Copie tab758[i] → slots[i] pour passer le null-check vt20.
+Chercher : `STATUS_SLOT_POKE`, `★VT20_TRUE`, `★NOT_BUSY2`,
+LoginComplete / plus de FAIL1.
+`PIPE_STATUS_SLOT_POKE=0` pour désactiver.
+
+Run 16:15 — POKE = BREAKTHROUGH partiel
+---------------------------------------
+- STATUS_SLOT_POKE #4 OK → slots = tab758.
+- ★VT20_TRUE (144×) ; status.vt8 = **THREE (3)** (plus jamais BUSY2).
+  (vt8: vt20 true ⇒ constante 3 — pas un code erreur séparé.)
+- JobqHeaderGet ret=1 (inner GE2) — tag `?FAIL1?` = **faux ami**
+  (1 = status≥2, job « prêt »).
+- **Pas de logout/70** ; client reste ~96s.
+- Nouveau : **Util/22** ~+15s (telemetry Freebox) — progression
+  Blaze au-delà d’Auth/10 (avant : silence jusqu’au logout).
+- Mais LoginStateLogin reste **BUSY2** jusqu’à ~35s puis **FAIL1** ;
+  LoginComplete **jamais entré**.
+- Prochaine cible : après JobqHeaderGet=1, **pourquoi Login
+  renvoie encore 2** (autre waiter / résultat Auth / erreur job).
+
+WaiterBusySlot5 = frein restant (live tree)
+------------------------------------------
+- Poke run : WaiterBusySlot5 **39× ret=2 BUSY** alors que
+  JobqHeaderGet=1 (READY) et vt8=THREE.
+- LoginStateLogin BUSY2 corrèle avec Slot5, pas HeaderGet.
+- Hooks : WAITER5_THIS (+0x14/+0x18/+0x260/+0x340/+0x348),
+  WAITER5_HELPER @0x6db4e10, disasm Slot5 80 insn,
+  Login leave affiche slot5Ret+hdrRet.
+- Tag JobqHeaderGet ret=1 → ★READY (plus ★FAIL1?).
+
+Retest (poke ON)
+----------------
+```powershell
+$env:PIPE_ORIGIN_ONLINE_FIX="1"
+$env:PIPE_ORIGIN_AUTHCODE_FIX="1"
+$env:PIPE_ORIGIN_VERSION_FIX="1"
+$env:PIPE_EBISU_FIX="1"
+# PIPE_STATUS_SLOT_POKE=1 par défaut
+.\tools\run-pipeline-probe.ps1
+```
++ `npm run start:auth-origin-layer`
+
+Chercher : `WAITER5_THIS`, `WAITER5_HELPER`, `BUSY_POLL_DISASM WaiterBusySlot5`,
+`slot5Ret=` sur LOGIN_STATE leave.
+
+Run 16:23 — WAITER5_THIS décisif
+--------------------------------
+- Champs **figés** toute la session :
+  +0x14=800, +0x18=**0x80000000** (sentinel), +0x260=15,
+  **+0x340=1**, +0x348=16, +0x258/+0x268 non-null.
+- Disasm : `mov edi,[rbx+0x340]; test edi; jne 0x71b7e85`
+  → avec +0x340=1 on est **toujours** sur le chemin alt (pas le
+  loop +0x258). Path `0x71b7e85` à disasm (ajouté live).
+- Slot5 leave : **41× ret=2**, 2× PTR `JOBQ+0xb0-ish`, 1× 0.
+- hdrRet=1 (READY) + slot5Ret=2 → Login BUSY2 → FAIL1 ~34.8s.
+- WAITER5_HELPER @0x6db4e10 = tick partagé (6290× bruit) —
+  filtré Slot5-RA only au prochain run.
+- Toujours : poke OK, VT20_TRUE, pas logout/70, util_22 OK.
+
+Run 16:31 — RÉGRESSION : pas d’Auth/10 (Origin offline)
+-------------------------------------------------------
+- OriginCheckOnline ret=**0xa2080000**, online=0→0 (FIX skip).
+- Login → FAIL1 immédiat + logout/70 ; **auth10AgeMs=-1**.
+- Serveur : configs puis logout, **aucun** originAuthCodeLogin.
+- Cause : ORIGIN_ONLINE_FIX exigeait `ret===0` ; Origin renvoie
+  l’erreur offline → fix jamais appliqué.
+- Fix live : après PreAuth, forcer online=1 **et** ret=0 même si
+  retWas=0xa2080000. Chercher `ORIGIN_ONLINE_FIX applied retWas=`.
+
+Run 16:34 — DÉCISIF : entry.vt+0x20 = LoginStateLogin
+-------------------------------------------------------
+- Origin fix OK (retWas=0x0 online=0→1) ; Auth/10 + poke + VT20 OK.
+- Pas de logout/70 ; util_22 OK ; FAIL1 ~35s (Slot5).
+- WAITER5_THIS : **+0x1c=+0x1e=0 figés** ; +0x344=8 ;
+  **entry=loginObj** ; **entry.vt20 = 0x71b58e0 = LoginStateLogin**.
+- Donc Slot5 appelle Login lui-même ; Login renvoie BUSY2 ;
+  flags waiter jamais levés → boucle jusqu’au FAIL1.
+- entry ≈ waiter+0xC00 (lien parent déjà vu).
+- altTail : `test bpl ; je done ; …` → bpl=1 ⇒ BUSY.
+- Prochaine : pourquoi Login reste BUSY2 alors que hdr=READY
+  et vt8=THREE (résultat Auth / autre check dans LoginStateLogin).
+
+Login BUSY_WHY (live tree)
+-------------------------
+- Disasm enrichi : eaxImm, flagWrites (+0x1c/+0x1e/+0x260),
+  fenêtres nearBusy260 @0x71b5b80 / nearOrEdi @0x71b5d80.
+- LOGIN_BUSY_WHY quand hdrRet=1 && Login ret=2 :
+  login+0x260, waiter(+0x11/+0x1c/+0x1e/+0x340), loginCallRet.
+- Track LoginCall_717d5d0 last ret.
+
+Retest
+------
+```powershell
+$env:PIPE_ORIGIN_ONLINE_FIX="1"
+$env:PIPE_ORIGIN_AUTHCODE_FIX="1"
+$env:PIPE_ORIGIN_VERSION_FIX="1"
+$env:PIPE_EBISU_FIX="1"
+.\tools\run-pipeline-probe.ps1
+```
+
+Run ~16:54 — atBusy260 / cnnsZeroTail
+-------------------------------------
+- Auth/poke/VT20 OK ; FAIL1 @~34.8s ; LoginCall jamais hit.
+- **cnnsZeroTail @0x71b6a93 = épilogue seul** (je/jmp = early return).
+- Path BUSY @0x71b5c18 :
+  `mov [login+0x260],2` → lookup cnns → **`[cnns+0x6d0]=0`** → jmp epilogue.
+- Path SUCCès sibling @0x71b5c71 :
+  lookup → vt+0x48 → **`[login+0x260]=6`** → **`[cnns+0x6d0]=1`** →
+  `[login+0x264]=5` → epilogue. **Jamais atteint** (login reste +0x260=2).
+- Gate nearBusy260 : cnns.vt+0x40 → `cmp [rax+0xc],0` → je epilogue.
+- Prochain : HIT_BUSY260 / HIT_SUCC260 + dump cnns+0x6d0 / vt40+0xc +
+  LOGIN_BUSY_XREFS (branches vers store BUSY).
+
+Chercher : `HIT_BUSY260`, `HIT_SUCC260`, `LOGIN_BUSY_XREFS`, `CNNS_VT40`,
+`cnns=`, `vt40+0xc=`.
+
+Run ~17:00 — HIT_BUSY / CNNS layout
+-----------------------------------
+- HIT_BUSY260 : ~600× (chaque poll) ; **HIT_SUCC260 = 0**.
+- cnns+0x6d0 **toujours 0** ; VT20 OK.
+- Layout prouvé : **waiter=cnns+0xb0**, **login=cnns+0xcb0**.
+- cnns hex : +8=1, +0x10=job Auth, +0x18=0xa.
+- CNNS_VT40 armed @**0x719a4b0** (près status.vt40/vt8).
+- **Régression** : mid-fn @0x71b5c18 → Login ret=PTR(cnns) (0×BUSY2, 0×FAIL1).
+  Mid-fn retiré ; observe +0x260 on leave + LOGIN_BUSY_BYTES (rel jcc).
+- Chercher : `CNNS_VT20`, `cnns.vt40.fail`, `+0x41c`, `hex410`.
+
+Run ~17:08 — cnns.vt20 gate
+-----------------------------
+- Interrupt ~25s ; BUSY2 OK ; OBS_SUCC=0 ; CNNS_VT20 leave **0×** (path busy
+  n'appelle pas vt40→vt20).
+- **cnns.vt40.fail** = `xor eax,eax ; ret` (NULL si al≠1).
+- **cnns.vt20 @0x71a5930** = **waiter/jobq+b0.vt30** (même RVA) :
+  `cmp [this+0x6e0],1 ; je ok` / `cmp [this+0x6d4],1 ; je ok` / sinon al=0.
+- Dump : `+0x6d0=0`, **`+0x41c=2`** (gate Login OK si vt40 passait),
+  hex410=`0,4,1,2,...`.
+- Prochain : dump **`+0x6d4` / `+0x6e0`** + `cnns.vt20.ok` @0x71a594e ;
+  trouver qui set ces bytes (ready flags).
+
+Run ~17:13 — flags figés 0 ; FAIL1
+----------------------------------
+- `cnns.vt20.ok` = `mov al,1 ; ret` confirmé.
+- BUSY_WHY : **`+0x6d4=0 +0x6e0=0`** tout le poll ; OBS_SUCC=0 ; FAIL1@34.8s.
+- CNNS_VT20 leave **1× seulement** @FAIL1 (teardown) : this=**cnns**,
+  via `jobq+b0.vt30` ; al=1 (high bits rax stale) — **pas pendant BUSY**.
+- Donc ready flags jamais set pendant login ; path busy n'appelle pas vt20.
+- Prochain : `CNNS_READY_POKE` (+0x6d4/+0x6e0:=1) + `CNNS_READY_WRITERS` scan.
+  Chercher : `CNNS_READY_POKE`, `CNNS_READY_WRITERS`, `OBS_SUCC260`.
+
+Run ~17:19 — READY_POKE négatif
+--------------------------------
+- POKE OK @2.3s : `+0x6d4/+0x6e0→1` **collent** tout le poll.
+- Néanmoins : `+0x260=2`, loginCallRet=-1, OBS_SUCC=0, FAIL1@36s.
+- ⇒ flags ready **pas** le gate du path busy @0x71b5c18.
+- Writer natif unique : **`mov [rdi+0x6d4],1` @0x71a1dba**.
+- Prochain : disasm writer + `beforeCall`/`atLoginCall` (branche → LoginCall
+  vs busy). Chercher : `cnnsReadyWr`, `beforeCall`, `atLoginCall`.
+
+Run ~17:23 — atLoginCall / ebmg
+--------------------------------
+- READY_POKE toujours collé ; FAIL1@36s ; LoginCall jamais hit.
+- **atLoginCall @0x71b5b42** :
+  lookup fourcc **`'ebmg'`(0x65626d67)** → si non-null :
+  set msg + **`login+0x260:=1`** + clear cnns+0x6d0 + **LoginCall** ;
+  si null → alt @0x71b5b9e.
+- OriginCheckOnlineWrapper voit aussi arg2=`0x65626d67` ('ebmg').
+- Writer @0x71a1dba : `bpl==1` ; clear `+0x6e0` ; si `+0x4bc!=-1` → `+0x6d4:=1`.
+- Prochain : `EBMG_LOOKUP` (null?) + `+0x4bc` + jumps `toLoginCall`.
+  Chercher : `EBMG_LOOKUP`, `ebmg=`, `+0x4bc=`, `toLoginCall`.
+
+Run ~17:29 — toLoginCall / +0x4bc=-1
+------------------------------------
+- EBMG_LOOKUP=0 / ebmgN=0 : **bloc LoginCall jamais entré**.
+- **toLoginCall = `jcc32 @0x71b59b8 → 0x71b5b42`** (gate manquante).
+- cnns **`+0x4bc=-1`** → writer natif ne set PAS +0x6d4 (notre poke le force).
+- Writer fn : set `+0x6e0=1` tôt ; lookup fourcc **`'actv'`(0x61637476)** ;
+  plus tard clear +0x6e0 / set +0x6d4 si +0x4bc!=-1.
+- FAIL1@36s ; READY_POKE collé inutile pour ce gate.
+- Prochain : disasm **`gateToCall` @0x71b5950** / **`atJccCall` @0x71b59a0**
+  (condition du jcc → LoginCall). Chercher : `gateToCall`, `atJccCall`.
+
+Run ~17:33 — gateToCall CORRIGÉ
+--------------------------------
+- **`test rax; je 0x71b5b42`** : lookup @0x71b59af **NULL → LoginCall/ebmg** ;
+  **non-NULL → `login+0x260:=1`** + lookup **cnns** + clear +0x6d0 +
+  `call [rbx].vt+0` ; `al!=1` → jmp 0x71b5bc2.
+- Donc LoginCall = fallback si 1er lookup vide. ebmgN=0 ⇒ 1er lookup
+  **non-NULL** (ou gate jamais atteint) ; +0x260 finit à **2** (busy store).
+- Avant gate : set `login+0x80` msg + `+0x2cb=1` ; call status.slot.
+- Prochain : `GATE_LOOKUP` (RA=0x71b59b2) + `afterGate` / `fnHead`.
+  Chercher : `GATE_LOOKUP`, `afterGate`, `fnHead`.
+
+Run ~17:38 — SWITCH sur +0x260 !
+---------------------------------
+- **fnHead** : `movsxd rax,[login+0x260] ; cmp eax,0x18 ; ja epi ;
+  jmp [table+rax*4]` — **state machine**.
+- GATE_LOOKUP=0 : coincé en **case 2** (busy @0x71b5c18) → gate/LoginCall
+  jamais exécutés. FAIL1@36s.
+- Prochain : `LOGIN_STATE_SWITCH` (dump cases) + `LOGIN_STATE_CASE` +
+  **`LOGIN_STATE_POKE` +0x260=2→0** (reforcer case gate).
+  Chercher : `LOGIN_STATE_SWITCH`, `LOGIN_STATE_POKE`, `LOGIN_STATE_CASE`.
+
+Run ~17:42 — POKE → LoginCall, puis re-BUSY
+-------------------------------------------
+Jump table (LOGIN_STATE_SWITCH) :
+  0 → 0x71b5946 GATE0
+  1 → 0x71b5c0d   (proche store busy +0x260:=2 @0x71b5c18)
+  2 → 0x71b5c43   (poll busy / timeout)
+  5 → 0x71b5c71 SUCC (écrit +0x260:=6) ; 6 = EPILOGUE
+  (3,4,6,10,12–15,17,18,23 = EPILOGUE)
+
+Timeline poke :
+  case 0 → 1 → 2@5999ms → POKE 2→0 → EBMG non-null → **LoginCall ret=0x18**
+  → case 1@7010 → re-case 2 stuck. OBS_SUCC=0. Interrupt ~27s (pas FAIL1).
+
+Verdict : state machine **atteignable** via poke ; LoginCall tourne mais
+ret=0x18 ne mène pas à case 5. Stop poke treadmill → STRATEGY A.
+
+Strategy A (prochain run) — MAM WRITE login+0x260, pokes OFF
+------------------------------------------------------------
+Voir STRATEGY-RESET.md. Chercher : `LOGIN_260_MAM`, `LOGIN_260_HIT_SUCC5`,
+`hit5=0`. Pas de LoginCall trace parallèle.
+
+Run Strategy A (~17:58) — DÉCISIF (malgré MAM mort)
+----------------------------------------------------
+Config OK : pokes=OFF, MAM armed login=0x45ba89d8 cur=0.
+Auth/10 REPLY consommée ; FAIL1@35684 ; logout/70 (sans slot poke = attendu).
+
+MAM : **hits=0 hit5=0** alors que CASE prouve des écritures sur le MÊME
+objet (`arg0=0x45ba89d8`) : `0 → 1@5418 → 2@6387 → … → 16@FAIL1`.
+→ MAM non page-aligné = faux négatif d’outil (pas « zéro writer »).
+
+Preuve utile (CASE, ~283 enters LoginStateLogin) :
+  états vus = **1, 2, 16** seulement. **Jamais 5, jamais 6.**
+  busyCount=272 coincé en case 2 jusqu’au teardown FAIL (case 16).
+
+Verdict strategy A :
+  Aucune transition vers SUCC (case 5) pendant tout le freeze.
+  **Arrêter de chercher le writer→5 dans LoginStateLogin** — l’événement
+  async qui devait poser `+0x260=5` n’a pas eu lieu.
+  Prochaine cible : événement hors SM (Origin/Ebisu/Nucleus / notif Blaze
+  post-Auth) ; `authFlowHits=0` déjà vu. MAM page-align seulement si on
+  veut les RIP des writers 1/2/16 (optionnel).
+
+Strategy B (prochain run) — EXT_DISPATCH only
+---------------------------------------------
+Point commun : CALLGATE @0x6da9493 (walker callbacks) + sink Blaze notif
+@0x6df0df0. Fenêtre Auth/10 only. Pokes OFF, MAM OFF. Pas de LoginCall.
+Chercher : `EXT_DISPATCH`, `EXT_260_CORR`, `EXT_DISPATCH_MISS`,
+`EXT_DISPATCH_HEARTBEAT`, `EXT_DISPATCH_RING`.
+
+Run Strategy B (~18:12) — DÉCISIF
+---------------------------------
+- Auth/10 REPLY OK ; FAIL1@35682 ; logout/70 ; authFlowHits=0.
+- CALLGATE **273×** pendant freeze : **uniqueCb=1** = toujours
+  `cb=0x6e3746c` (tick Fire2 ~110 ms ; payload↑ ; a3≈0x70).
+- **BLAZE_NOTIF = 0** (aucune Notification msgType=2).
+- ORIGIN_UI / AUTH_FLOW ENTER pendant fenêtre = **0**.
+- EXT_260_CORR : `0→1@3921 → 2@6420 → 16@35581` ; ring au 2→16 =
+  encore le même tick — **aucun événement distinct au FAIL**.
+
+Verdict : le dispatch commun ne livre **aucun** callback login/notif
+pertinent. Seul le heartbeat Fire2 tourne. Le manque est confirmé
+**hors** LoginStateLogin : couche Origin/Ebisu/Nucleus (ou notif Blaze
+jamais émise/reçue). Prochaine cible = **produire** l’événement manquant
+(pas tracer un autre sink vide).
+
+Strategy C (prochain run) — NOMMER le listener orphelin
+-------------------------------------------------------
+Pas d’émission notif / pas de poke. Scan mov[+0x260],5 + listeners nommés
++ gate-reg + report busyInvokes=0.
+Chercher : `ORPHAN_WRITER_SITE`, `ORPHAN_DISASM`, `ORPHAN_WRITER5_HIT`,
+`ORPHAN_LISTENER`, `ORPHAN_SUMMARY`, `ORPHAN_NO_WRITER5`.
+
+Run Strategy C (~18:27) — verdict strict
+----------------------------------------
+Config OK ; ORPHAN_REPORT @2→16 age=35596 ; FAIL1@35691 ; login=0x45b789d8.
+
+Runtime (fiable) :
+  - **ORPHAN_NO_WRITER5** / writer5Confirmed=0 — jamais `+0x260→5` sur
+    **cette** instance (état final 16).
+  - Pendant Auth/10 seuls **TickCb** + **LoginAuthScheduler** invoqués.
+  - ★ORPHAN (busyInvokes=0) : NetworkLoginEvent, OriginLoginMessage,
+    Nucleus*, LoginComplete, BLAZE_NOTIF, login_a8_vt0, gate_* (pre-Auth only).
+  - ORPHAN_CHAIN complète : enregistré → 0 invoke utile → pas d’état 5 →
+    writer 5 jamais atteint.
+
+Scan statique (outil) :
+  - `ORPHAN_SCAN mov[+0x260],5 sites=0` et `,6 sites=0` — **faux négatif**
+    (pattern `?? ?? 60 02` rate `41 C7 86 60 02` = 3 octets avant disp).
+  - Donc **ORPHAN_PRIMARY=NetworkLoginEvent** = heuristique only
+    (`preferred-named-orphan-no-static-link-yet`) — **pas prouvé** par
+    lien writer5 (règle multi-orphelins non satisfaite).
+
+Verdict : contrat **non nommé avec preuve writer**. Prouvé = signal
+d’activation vers état 5 absent ; candidats orphelins listés mais sans
+lien statique tant que le scan writer n’est pas corrigé.
+
+Strategy C2 (prochain run) — SCAN WRITER CORRIGÉ only
+----------------------------------------------------
+Scan : trail `60 02 00 00 imm` + decode C7/REX/SIB ; mov-reg-imm+store ;
+xref E8 index → ORPHAN_STATIC_LINK. Pas d’heuristique NetworkLoginEvent.
+Chercher : `ORPHAN_SCAN`, `ORPHAN_WRITER_SITE`, `ORPHAN_STATIC_LINK`,
+`ORPHAN_PRIMARY`, `ORPHAN_MULTI_STATIC`, `ORPHAN_NO_STATIC_WRITER`.
+
+Run C2 (~18:40) — writers OK, lien E8 cassé
+-------------------------------------------
+- ORPHAN_SCAN_TOTAL **writerSites=8** imm5=3 imm6=5 — scan décodage OK.
+- Stores **réels** (mov dword ptr [reg+0x260], imm) :
+  - **imm5** @0x583b7a3 `mov [rbx+0x260],5` fn=0x583b781
+  - **imm6** @0x71b5c95 `mov [rsi+0x260],6` fn=0x71b58f3 (=LoginStateLogin SUCC)
+  - + imm6 @0x6c2744b, 0x6c3c014, 0x71b5096
+- Faux + : REGSTORE **loads** `mov edx/r9d, [rsp/r15+0x260]` — à filtrer.
+- **ORPHAN_XREF e8inModule≈0** (bug `m.size`/filtre) → callers=0 partout
+  → **ORPHAN_NO_STATIC_LINK** + **ORPHAN_PRIMARY none** (outil, pas preuve
+  d’absence de chemin ; E8/vt/thunk non conclusifs ici).
+- Runtime : ORPHAN_NO_WRITER5 ; 2→16@35645 ; FAIL1@35746.
+
+Verdict lecture : **pas** STATIC_LINK/PRIMARY ; **pas** NO_STATIC_WRITER.
+Étape suivante : corriger index E8 + exclure loads, puis relier orphelins
+au writer **imm5 @0x583b7a3** (candidat store→5 hors SUCC qui écrit 6).

@@ -1,0 +1,17 @@
+v28 — honest MD5 cert + filtered cert-site onLeave
+==================================================
+
+Changements:
+- Cert actif = md5WithRSAEncryption (plus Aim4kill rsaEncryption)
+- Hook 0x6129eb0 onLeave→0 seulement si returnAddress ≈ 0x612d54d
+- je→jmp belt
+- Parse = strings CN dans pSecure
+
+Résultat test:
+- npm: sig=md5WithRSAEncryption OK, mais "no data within 15s"
+- Frida: REAL PARSE (gosredirector) dès CONNECT = FAUX POSITIF
+- FORCE iState 21→22 trop tôt → ClientHello jamais envoyé
+- CERT-SITE ret=107→0 ×900 = boucle
+- Fin: iState=4109, pas de CKE
+
+Leçon → v29

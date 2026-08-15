@@ -1,0 +1,107 @@
+=== STP4216_PROTOCOL_AUDIT ===
+verdict=LSX_DECRYPT_OK_NO_REWRITE
+why=GetSettings seen but IsManualOffline not extracted
+protocolVersion(@version)=3
+sdkVersion(<Version>)=9.12.1.2
+decryptOk=52 decryptFail=0
+keyModes={'session_accepted': 52}
+idMatchOk=25 idMatchFail=0
+eventWithId=0 loginAsResponse=False
+IsManualOffline=None
+connected=1
+GoOnlineCode=None
+isOnline=1
+loginEvent=True fields={'IsLoggedIn': 'true', 'UserIndex': '0', 'LoginReasonCode': 'ALREADY_ONLINE', 'sender': 'EbisuSDK'}
+middlewareReason=None
+postWincodes=False
+authCodeSeen=False
+profile={'UserIndex': '0', 'UserId': '1000000001', 'PersonaId': '1000000001', 'Persona': 'maxence30evrard', 'AvatarId': '0', 'Country': 'FR', 'IsUnderAge': 'false', 'IsSubscriber': 'true', 'IsTrialSubscriber': 'false', 'SubscriberLevel': '1', 'GeoCountry': 'FR', 'CommerceCountry': 'FR', 'CommerceCurrency': 'EUR', 'IsSteamSubscriber': 'false'}
+profileMissing=[]
+presence={'UserId': '1000000001', 'Presence': 'ONLINE', 'Title': 'FIFA 17', 'TitleId': 'Origin.OFR.50.0004455', 'SessionId': 'local'}
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17', 'UserId': '1000000001', 'PersonaId': '1000000001', 'Persona': 'maxence30evrard'}
+--- Facility → Recipient ---
+BLOCKED_USERS → EbisuSDK
+BLOCKED_USER_EVENT → EbisuSDK
+CHAT → XMPP
+COMMERCE → Commerce
+COMMERCE_EVENT → Commerce
+CONTENT → EbisuSDK
+DOWNLOAD_EVENT → EbisuSDK
+EALS_EVENTS → EALS
+FRIENDS → XMPP
+FRIENDS_EVENT → XMPP
+GET_USERID → EbisuSDK
+IGO → EbisuSDK
+IGO_EVENT → EbisuSDK
+LOGIN → EALS
+LOGIN_EVENT → EbisuSDK
+MISC → EbisuSDK
+ONLINE_STATUS_EVENT → EbisuSDK
+PERMISSION → EbisuSDK
+PRESENCE → XMPP
+PRESENCE_EVENT → XMPP
+PROFILE → EbisuSDK
+PROFILE_EVENT → EbisuSDK
+PROGRESSIVE_INSTALLATION → PI
+PROGRESSIVE_INSTALLATION_EVENT → PI
+RECENTPLAYER → EbisuSDK
+RESOURCES → EbisuSDK
+SDK → EbisuSDK
+UTILITY → Utility
+XMPP → XMPP
+--- Chronology ---
+1. Challenge
+2. ChallengeResponse
+3. ChallengeAccepted
+4. OnlineStatusEvent
+5. CurrentUserPresenceEvent
+6. ProfileEvent
+7. Login
+8. GetConfig
+9. GetConfigResponse
+10. GetProfile
+11. GetProfileResponse
+12. GetSetting
+13. GetSettingResponse
+14. Request
+15. Response
+16. Request
+17. Response
+18. GetSetting
+19. GetSettingResponse
+20. GetSetting
+21. GetSettingResponse
+22. Request
+23. Response
+24. GetProfile
+25. GetProfileResponse
+26. Request
+27. ErrorSuccess
+28. Request
+29. Response
+30. GetSetting
+31. GetSettingResponse
+32. Request
+33. Response
+34. Request
+35. ErrorSuccess
+36. GetSetting
+37. GetSettingResponse
+38. Request
+39. Response
+40. GetInternetConnectedState
+41. InternetConnectedState
+42. Request
+43. ErrorSuccess
+44. Request
+45. ErrorSuccess
+46. GetProfile
+47. GetProfileResponse
+48. Request
+49. ErrorSuccess
+50. Request
+51. ErrorSuccess
+52. Request
+53. ErrorSuccess
+54. Request
+55. ErrorSuccess

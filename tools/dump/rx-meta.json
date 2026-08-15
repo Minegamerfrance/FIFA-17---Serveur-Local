@@ -1,0 +1,170 @@
+{
+  "dumpedAt": "2026-07-26T22:14:50.044Z",
+  "outDir": "C:/Users/Mineg/Desktop/serveur fifa 17/fifa serveur/tools/dump",
+  "moduleBase": "0x140000000",
+  "moduleSize": 288722944,
+  "ranges": [
+    {
+      "file": "rx-0000.bin",
+      "base": "0x140001000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0001.bin",
+      "base": "0x141001000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0002.bin",
+      "base": "0x142001000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0003.bin",
+      "base": "0x143001000",
+      "size": 5345280,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0004.bin",
+      "base": "0x14351a000",
+      "size": 196608,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0005.bin",
+      "base": "0x14354a000",
+      "size": 4096,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0006.bin",
+      "base": "0x14354b000",
+      "size": 14028800,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0007.bin",
+      "base": "0x1442ac000",
+      "size": 9924608,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0008.bin",
+      "base": "0x144c23000",
+      "size": 2822144,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0009.bin",
+      "base": "0x144ed4000",
+      "size": 2129920,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0010.bin",
+      "base": "0x1450dc000",
+      "size": 57344,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0011.bin",
+      "base": "0x1450ea000",
+      "size": 8192,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0012.bin",
+      "base": "0x1450ec000",
+      "size": 4096,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0013.bin",
+      "base": "0x1450ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0014.bin",
+      "base": "0x1460ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0015.bin",
+      "base": "0x1470ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0016.bin",
+      "base": "0x1480ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0017.bin",
+      "base": "0x1490ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0018.bin",
+      "base": "0x14a0ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0019.bin",
+      "base": "0x14b0ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0020.bin",
+      "base": "0x14c0ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0021.bin",
+      "base": "0x14d0ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    },
+    {
+      "file": "rx-0022.bin",
+      "base": "0x14e0ed000",
+      "size": 16777216,
+      "protection": "rwx",
+      "kind": "rx"
+    }
+  ],
+  "totalBytes": 252624896
+}

@@ -1,0 +1,24 @@
+# MNG Launcher est dans un dépôt séparé
+MNG Launcher/
+
+# Builds
+bin/
+obj/
+.vs/
+
+# Fichiers temporaires
+*.user
+*.suo
+*.log
+*.pdb
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/

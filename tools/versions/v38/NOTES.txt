@@ -1,0 +1,13 @@
+v38 — never rewind iState
+========================
+
+DirtySDK:
+  21 RECV_HELLO, 22 SEND_KEY (CKE), 23 SEND_CHANGE, 24 SEND_FINISH
+
+v37 bug: after sawCert, PARENT onLeave always set 22, even from 24.
+
+v38:
+- Force 22 ONLY if iState==21 or iState>=0x1000
+- If 22..30: leave alone (log only)
+Résultat: KEEP 24 OK but no CKE on wire. nudge after cert skipped HelloDone.
+→ v39: NO nudge after cert; wait natural 21→22; block close until CKE seen

@@ -1,0 +1,81 @@
+# pipeline-callers — Redirector → Fire2 decision map
+# Generated/extended 2026-07-27 from tools/dump module image
+# ranges=23
+
+## Chain (bottom = Fire2)
+
+```
+caller @0x147182682
+  → DECISION createBlazeHub 0x146db6900   ← ★ gate
+      → BlazeHub-like ctor 0x146daa830
+      → attach ConnectionManager 0x146db6af0
+          → factory ConnectionManager 0x146e19680  (RTTI "ConnectionManager")
+              → parent ctor 0x146e18660
+                  → Fire2Connection_ctor 0x146daaee0
+                      → (later) connect :10041
+```
+
+## DECISION fn 0x146db6900 (RVA 0x6db6900)
+
+Args (from prologue):
+  rcx = out hub slot (caller: rdi+0x360)
+  rdx = ServerInstance-like object (caller: rbp-0x30)  → kept in rbx
+  r8  = allocator/context
+  r9  = callback/aux
+
+Success for caller = **eax == 0** (caller does `test eax,eax; je continue`).
+
+### Early exits (eax = Blaze-style error)
+
+| Check | Error | Meaning |
+|-------|-------|---------|
+| `[rsi] != 0` (hub already set) | `0x80180000` (obfuscated lea) | skip recreate |
+| `byte [rbx+0x00] == 0` | `0x80140000` | SI field0 empty (likely name/string) |
+| `byte [rbx+0x40] == 0` | `0x80150000` | SI field1 empty |
+| `byte [rbx+0x80] == 0` | `0x80160000` | SI field2 empty |
+| `byte [rbx+0xc0] == 0` | `0x80170000` | SI field3 empty |
+| fourcc `serv` (0x76657273) lookup bad | `0x801a0000` | service config |
+| fourcc `open` (0x6f70656e) == 0 | `0x80100000` | open/feature flag |
+| BlazeHub ctor null | `0x800c0000` | alloc/ctor fail |
+
+Then fourcc `mans` (0x736e616d) + alloc size 0xcb0 + ctor `0x146daa830` ("Blaze Hub" string nearby)
+Then `call 0x146db6af0` → ConnectionManager → Fire2.
+
+### Direct call/jmp sites (E8)
+
+- Fire2Connection_ctor 0x146daaee0 ← 1 site @0x146e1869c (inside parent)
+- ConnectionManager factory 0x146e19680 ← 1 site @0x146db6b1a
+- Decision 0x146db6900 ← 1 site @0x147182682
+- ServiceResolver LEA sites / redir_err_mapper ← 0 direct E8 (vtable/jmp)
+
+## SI string sources (caller @0x14718230b+)
+
+Stack SI at `[rbp-0x30]` — 4×64-byte buffers. Filled via strncpy-like `0x145e27ff0` from parsed object `rdi`:
+
+| SI offset | Source | Max |
+|-----------|--------|-----|
+| +0x00 | `[rdi+0x78]` | 0x40 |
+| +0x40 | `[rdi+0x80]` | 0x40 |
+| +0x80 | `[rdi+0xa8]` | 0x40 |
+| +0xc0 | `[rdi+0x158]` | 0x40 |
+
+If those pointers are null/empty → createBlazeHub returns 0x8014..0x8017.
+Frida `PIPE_FILL_SI=1` (default with HOOK_XREFS) fills empty slots before the checks.
+
+## Next probe classification (HOOK_XREFS UT session)
+
+1. `createBlazeHub` never fires after XML → callback never enters hub create (upstream)
+2. `createBlazeHub` returns 0x8014/15/16/17 → SI strings empty (PIPE_FILL_SI addresses this)
+3. ServiceResolver no Fire2 → skip between resolve and ctor
+4. Fire2 no BLAZE_CONNECT → connect path after ctor
+5. nothing after XML → callback/parse never enters resolve
+
+## Anchors (VA / RVA, base 0x140000000)
+
+  createBlazeHub_decision = 0x146db6900 / 0x6db6900
+  BlazeHub_ctor_like      = 0x146daa830 / 0x6daa830
+  ConnectionManager_attach= 0x146db6af0 / 0x6db6af0
+  ConnectionManager_factory=0x146e19680 / 0x6e19680
+  Fire2_parent_ctor       = 0x146e18660 / 0x6e18660
+  Fire2Connection_ctor    = 0x146daaee0 / 0x6daaee0
+  decision_caller         = 0x147182682 / 0x7182682

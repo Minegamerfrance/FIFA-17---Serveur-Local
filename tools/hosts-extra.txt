@@ -1,0 +1,24 @@
+# Add these lines to C:\Windows\System32\drivers\etc\hosts (Notepad as admin)
+
+127.0.0.1 winter15.gosredirector.ea.com
+127.0.0.1 winter15.gosredirector.scert.ea.com
+127.0.0.1 winter15.gosredirector.sdev.ea.com
+127.0.0.1 winter15.gosredirector.stest.ea.com
+127.0.0.1 gosredirector.ea.com
+127.0.0.1 gosredirector.online.ea.com
+127.0.0.1 accounts.ea.com
+127.0.0.1 gateway.ea.com
+127.0.0.1 signin.ea.com
+127.0.0.1 gosca.ea.com
+127.0.0.1 demangler.ea.com
+127.0.0.1 eastore.ea.com
+127.0.0.1 tos.ea.com
+127.0.0.1 support.ea.com
+127.0.0.1 www.ea.com
+127.0.0.1 accounts.int.ea.com
+127.0.0.1 gateway.int.ea.com
+127.0.0.1 signin.int.ea.com
+127.0.0.1 utas.external.s2.fut.ea.com
+127.0.0.1 utas.s2.fut.ea.com
+127.0.0.1 fut.ea.com
+127.0.0.1 easfc.ea.com

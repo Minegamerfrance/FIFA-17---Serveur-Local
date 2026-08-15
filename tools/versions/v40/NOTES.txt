@@ -1,0 +1,17 @@
+v40 — Aim4kill noext_mod + soft host + fail→21
+===============================================
+
+Cert: fifa17/noext_mod.der (SHA1 leaf, sig OID→rsaEncryption, iHashSize=0)
+Key:  noext.key.pem
+
+Frida:
+- Soft strHost rewrite → "gosredirector.ea.com" (no 256 wipe)
+- flag +288 once
+- NO mov eax,0 call skips (keep pubkey/parse side-effects)
+- ONLY je→jmp belt on cert site
+- PARENT onLeave: FAIL → force ret=21 + iState=21 (stay RECV for HelloDone)
+- After natural/seen 22: keep; block close until ★ CKE
+- MemoryAccessMonitor on iState when writing FAIL (diag)
+
+Résultat: LIVE jamais trouvé (iState=-1). Cert Aim4kill OK côté serveur.
+→ v41: PARENT arg0 = ProtoSSL* + scan fallback

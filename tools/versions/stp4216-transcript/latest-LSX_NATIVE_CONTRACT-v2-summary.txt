@@ -1,0 +1,17 @@
+verdict=MANUAL_OFFLINE_UNPARSED
+why=GetSettings seen but IsManualOffline not extracted
+protocolVersion=3
+sdkVersion=9.12.1.2
+keyModes={'session_accepted': 32}
+IsManualOffline=None
+connected=None
+GoOnlineCode=None
+isOnline=None
+loginEvent=False
+loginSender=None
+loginFields={}
+middlewareReason=None
+postWincodes=False
+profileMissing=['UserIndex', 'AvatarId', 'IsTrialSubscriber', 'SubscriberLevel', 'IsSteamSubscriber']
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17', 'UserId': '33068179', 'PersonaId': '33068179', 'Persona': 'STEAMRIP'}
+chronology=Challenge → Challenge → ChallengeResponse → ChallengeResponse → ChallengeAccepted → ChallengeAccepted → GetConfig → GetConfig → GetConfigResponse → GetConfigResponse → GetProfile → GetProfile → GetProfileResponse → GetProfileResponse → GetSetting → GetSetting → GetSettingResponse → GetSettingResponse → Request → Request → Response → Response → Request → Request → Response → Response → GetSetting → GetSetting → GetSettingResponse → GetSettingResponse → GetProfile → GetSettingResponse → GetProfile → GetSettingResponse → Request → Request → Response → Response

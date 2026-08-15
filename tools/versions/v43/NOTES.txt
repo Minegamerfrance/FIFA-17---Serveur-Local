@@ -1,0 +1,12 @@
+v43 — adopt connect-sa without host string
+==========================================
+
+Real ProtoSSL at connect sockaddr-256:
+  af@256=2, port=42230, iState@272=2, pSecure valid, strHost EMPTY
+
+- Primary adopt: connect args[1]-256 via layout (not hostname)
+- Soft-write CERT_CN into strHost[0]
+- flag +288, je→jmp, FAIL→21, block close until CKE
+
+Résultat: LIVE OK; CH 107 (host trop tôt); FAIL_9 après cert.
+→ v44

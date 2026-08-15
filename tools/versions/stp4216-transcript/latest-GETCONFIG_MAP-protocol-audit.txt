@@ -1,0 +1,123 @@
+=== STP4216_PROTOCOL_AUDIT ===
+verdict=CONFIG_MAP_RECIPIENT_NONEMPTY
+why=GetSettings seen but IsManualOffline not extracted
+protocolVersion(@version)=3
+sdkVersion(<Version>)=9.12.1.2
+decryptOk=88 decryptFail=0
+keyModes={'session_accepted': 88}
+idMatchOk=24 idMatchFail=22
+eventWithId=0 loginAsResponse=False
+IsManualOffline=None
+connected=1
+GoOnlineCode=None
+isOnline=None
+loginEvent=False fields={}
+middlewareReason=None
+postWincodes=False
+authCodeSeen=False
+profile={'UserId': '33068179', 'PersonaId': '140718499322816', 'Persona': 'STEAMRIP', 'Country': 'US', 'IsUnderAge': 'false', 'IsSubscriber': 'true', 'GeoCountry': 'US', 'CommerceCountry': 'US', 'CommerceCurrency': 'USD'}
+profileMissing=['UserIndex', 'AvatarId', 'IsTrialSubscriber', 'SubscriberLevel', 'IsSteamSubscriber']
+presence={}
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17', 'UserId': '33068179', 'PersonaId': '140718499322816', 'Persona': 'STEAMRIP'}
+--- Facility → Recipient ---
+LOGIN → EALS
+LOGIN_EVENT → EbisuSDK
+ONLINE_STATUS_EVENT → EbisuSDK
+PROFILE → EbisuSDK
+SDK → EbisuSDK
+UTILITY → Utility
+--- Chronology ---
+1. Challenge
+2. Challenge
+3. ChallengeResponse
+4. ChallengeResponse
+5. ChallengeAccepted
+6. ChallengeAccepted
+7. GetConfig
+8. GetConfig
+9. GetConfigResponse
+10. GetConfigResponse
+11. GetProfile
+12. GetProfile
+13. GetProfileResponse
+14. GetProfileResponse
+15. GetSetting
+16. GetSetting
+17. GetSettingResponse
+18. GetSettingResponse
+19. Request
+20. Request
+21. Response
+22. Response
+23. Request
+24. Request
+25. Response
+26. Response
+27. GetSetting
+28. GetSetting
+29. GetSettingResponse
+30. GetSettingResponse
+31. GetProfile
+32. GetProfile
+33. GetSettingResponse
+34. Request
+35. GetSettingResponse
+36. Request
+37. Response
+38. Response
+39. Request
+40. Request
+41. GetProfileResponse
+42. GetProfileResponse
+43. GetSetting
+44. GetSetting
+45. Response
+46. Response
+47. Request
+48. GetSettingResponse
+49. Request
+50. GetSettingResponse
+51. Request
+52. Request
+53. Response
+54. Response
+55. GetSetting
+56. GetSetting
+57. ErrorSuccess
+58. ErrorSuccess
+59. Request
+60. Request
+61. GetSettingResponse
+62. GetSettingResponse
+63. GetInternetConnectedState
+64. GetInternetConnectedState
+65. Response
+66. Response
+67. Request
+68. Request
+69. InternetConnectedState
+70. InternetConnectedState
+71. Request
+72. Request
+73. GetProfileResponse
+74. GetProfileResponse
+75. GetProfile
+76. GetProfile
+77. ErrorSuccess
+78. ErrorSuccess
+79. Request
+80. Request
+81. ErrorSuccess
+82. ErrorSuccess
+83. Request
+84. Request
+85. ErrorSuccess
+86. ErrorSuccess
+87. Request
+88. Request
+89. ErrorSuccess
+90. ErrorSuccess
+91. Request
+92. Request
+93. ErrorSuccess
+94. ErrorSuccess

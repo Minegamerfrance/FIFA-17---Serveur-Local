@@ -1,0 +1,12 @@
+v37 — parent onLeave force ST3_SEND_KEY(22)
+===========================================
+
+DirtySDK-style: caller often sets iState from function return.
+0x14612d4c0 is the cert-path parent (v23). Force onLeave:
+  retval → 22
+  iState → 22
+only when sawClientHello && iState was 21 or fail.
+
+Résultat: iState atteint 24 (ST3_SEND_FINISH) puis on a forcé →22 (rewind).
+Bug: sawCert faisait forcer 22 même en 23/24.
+→ v38: ne forcer 22 QUE si st==21 ou st>=0x1000

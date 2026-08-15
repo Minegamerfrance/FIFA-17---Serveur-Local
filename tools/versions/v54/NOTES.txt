@@ -1,0 +1,29 @@
+v54 — neutralize REAL FAIL_9 path (post-v53)
+
+v53 verdict (Étape A):
+- PARSE OK: modulus ce27… @ pSecure+0x24b0, iKeyModSize=128 @ +0x24ac
+- CN+400 DirtySDK layout WRONG for FIFA (CN@122f/1242 = DER noise, keyModSize=0)
+- BFP4F verify-call→xor eax,0 @0x14612d548 applied — FAIL_9 STILL hits @ iState=21
+- ⇒ that call-site is NOT the FAIL_9 cause (or not sufficient)
+- No HelloDone, no CKE; shutdown 4105
+- Frida ACCURATE BT was garbage
+
+v54 (Étape B — parse OK path):
+- dumpCert primary = modulus anchor @0x24b0 (not CN+400)
+- Scan ProtoSSL window for jcc/jmp → FAIL_9 @ RVA 0x61326fa → NOP
+- Detect fall-through into FAIL_9 → force preceding jcc to always skip stub
+- Keep verify xor + je→jmp success belt as secondary
+- Probe bAllowAnyCert +0x120 cmp/test in band (log)
+- Improved BT: STACK-FIFA RVAs + DISASM near RIP
+- NO mov eax,0x1009→21
+- NO force iState / flush / inject
+
+KEEP: LIVE connect-sa, flag+288, softHost after CH, block close
+
+Succès: ★PARSE_OK + ★HelloDone + natural ★ ClientKeyExchange (hs=16)
+Expected log:
+- FAIL_9 jcc/jmp @… → FAIL_9  then PATCH fail9-jcc-nop
+- dumpCert … mod@24b0 iKeyModSize=128 ★PARSE_OK
+- recv … ★HelloDone
+- ★ ClientKeyExchange
+- fail9Hits=0 (or HIT only if a path was missed)

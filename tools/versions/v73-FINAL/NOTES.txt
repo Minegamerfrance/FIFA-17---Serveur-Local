@@ -1,0 +1,23 @@
+# SUCCESS: v73-FINAL
+
+The SSL bypass has been successfully achieved!
+
+## The Mechanism
+The `FAIL_9` error (`0x1009`) was being triggered after the certificate was parsed, due to some remaining validation failure (likely hostname or CA chain) that wasn't covered by simply setting `bAllowAnyCert` or bypassing the initial `_VerifyCertificate` call.
+
+The `FAIL_9` state was being set inside a jump-table stub located at `0x1461326fa`. The original instructions at this stub were:
+```assembly
+mov eax, 0x1009
+jmp error_handler
+```
+
+By patching this stub to instead load `0x15` (which corresponds to `21`, or `ST_RECV_HELLO`) into `eax`:
+```assembly
+mov eax, 0x15
+jmp error_handler
+```
+We tricked the state machine. Instead of transitioning into the `FAIL_9` error state, the connection state was kept at `RECV_HELLO`. 
+
+Because the state remained `RECV_HELLO`, the game naturally continued to wait for the `ServerHelloDone` message. Once it received and processed it, it transitioned smoothly through all the remaining handshake states (`SEND_CKE`, `SEND_FINISH`, `SECURE`), successfully completing the SSL handshake and beginning to send encrypted application data.
+
+Coupled with the `je -> jmp` patches at `0x612f39c` and `0x61261eb` to ignore returned error codes from certificate parsing functions, this provided a complete and flawless bypass.

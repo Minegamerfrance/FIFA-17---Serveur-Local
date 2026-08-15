@@ -1,0 +1,95 @@
+=== STP4216_PROTOCOL_AUDIT ===
+verdict=LSX_ORIGIN_FIX_NO_AUTHCODE
+why=GetSettings seen but IsManualOffline not extracted
+protocolVersion(@version)=3
+sdkVersion(<Version>)=9.12.1.2
+decryptOk=67 decryptFail=0
+keyModes={'session_accepted': 67}
+idMatchOk=18 idMatchFail=17
+eventWithId=0 loginAsResponse=False
+IsManualOffline=None
+connected=0
+GoOnlineCode=None
+isOnline=None
+loginEvent=False fields={}
+middlewareReason=None
+postWincodes=False
+authCodeSeen=False
+profile={'UserId': '33068179', 'PersonaId': '140706047155136', 'Persona': 'STEAMRIP', 'Country': 'US', 'IsUnderAge': 'false', 'IsSubscriber': 'true', 'GeoCountry': 'US', 'CommerceCountry': 'US', 'CommerceCurrency': 'USD'}
+profileMissing=['UserIndex', 'AvatarId', 'IsTrialSubscriber', 'SubscriberLevel', 'IsSteamSubscriber']
+presence={}
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17', 'UserId': '33068179', 'PersonaId': '140706047155136', 'Persona': 'STEAMRIP'}
+--- Facility → Recipient ---
+--- Chronology ---
+1. Challenge
+2. ChallengeResponse
+3. ChallengeResponse
+4. ChallengeAccepted
+5. ChallengeAccepted
+6. GetConfig
+7. GetConfig
+8. GetConfigResponse
+9. GetProfile
+10. GetProfile
+11. GetProfileResponse
+12. GetProfileResponse
+13. GetSetting
+14. GetSetting
+15. GetSettingResponse
+16. GetSettingResponse
+17. Request
+18. Request
+19. Response
+20. Response
+21. Request
+22. Request
+23. Response
+24. Response
+25. GetSetting
+26. GetSetting
+27. GetSettingResponse
+28. GetSettingResponse
+29. GetSetting
+30. GetSetting
+31. GetSettingResponse
+32. GetSettingResponse
+33. Request
+34. Request
+35. Response
+36. Response
+37. GetProfile
+38. GetProfile
+39. GetProfileResponse
+40. GetProfileResponse
+41. Request
+42. Request
+43. Response
+44. Response
+45. GetSetting
+46. GetSetting
+47. GetSettingResponse
+48. GetSettingResponse
+49. Request
+50. Request
+51. Response
+52. Response
+53. Request
+54. Request
+55. ErrorSuccess
+56. ErrorSuccess
+57. GetSetting
+58. GetSetting
+59. GetSettingResponse
+60. GetSettingResponse
+61. Request
+62. Request
+63. Response
+64. Response
+65. GetInternetConnectedState
+66. GetInternetConnectedState
+67. InternetConnectedState
+68. InternetConnectedState
+69. GetProfile
+70. GetProfile
+71. GetProfileResponse
+72. GetProfileResponse

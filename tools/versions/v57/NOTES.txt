@@ -1,0 +1,39 @@
+v57 — FAIL_9 fall-through first + XREF + Stalker lite
+
+Gemini (accepted):
+- v56 XREF jcc→FAIL_9 often finds nothing because:
+  1) Fall-through: success `je` jumps OVER fail; FAIL_9 is
+     natural fall-through after `call; test eax,eax; je success`
+  2) Jump table / switch — no static jcc to stub
+- DO NOT: mov 0x1009→21 / force iState / flush / inject
+- NEVER Interceptor/prologue on hot 0x6129eb0
+
+Static note:
+- FIFA17.exe packs ProtoSSL in `.data.m` (encrypted on disk).
+  Bytes before FAIL_9 are runtime-only after Origin/OOA decrypt.
+
+v57 strategy:
+A) At setup: always dump ~48B BEFORE base+0x61326fa + Instruction.parse
+   If call + test eax,eax + je/jz (over fail) → fall into mov eax,0x1009:
+   - xor call (31 C0 90 90 90) AND/OR je→jmp
+   - Log: FAIL9-fallthrough call@… je@…
+B) Keep v56 thorough XREF → xor preceding verify (skip already-xor'd)
+C) Stalker lite after-CH / cert window:
+   - ring of last ~16 ProtoSSL BB starts (band 0x6120000..0x6140000)
+   - on FAIL_9 hit: dump ring + disasm last 2–3 blocks
+   - FAIL9-stalker BB[n]=…
+   - backup autopsy even if fall-through was applied at setup
+D) Keep near-stub gates + v55 parser belt + softHost + flag+288
+E) FAIL_9 observe only + dumpCert @0x24b0
+
+Expected log:
+- FAIL9-pre hex / FAIL9-pre disasm
+- FAIL9-fallthrough call@FIFA+… je@FIFA+…
+- FAIL_9 jcc @ … (if any) / FAIL9-xref-xor …
+- FAIL9-stalker ON …
+- dumpCert … ★PARSE_OK
+- recv … ★HelloDone
+- ★ ClientKeyExchange
+- fail9Hits=0
+
+Succès: fail9Hits=0 + ★PARSE_OK + ★HelloDone + ★ ClientKeyExchange (hs=16)

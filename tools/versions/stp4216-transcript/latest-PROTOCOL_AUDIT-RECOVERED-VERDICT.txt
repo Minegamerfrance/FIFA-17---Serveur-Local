@@ -1,0 +1,47 @@
+=== STP4216_PROTOCOL_AUDIT — recovered offline (ChallengeAccepted key) ===
+
+protocolVersion(@version)=3
+sdkVersion(<Version>)=9.12.1.2
+ContentId=1027460
+MultiplayerId=1027460
+Title=FIFA 17
+STP Challenge build version=10,4,13,6637
+
+KEY BUG (observer only):
+  FIFA ChallengeResponse.response = 00b9c8af…
+  STP  ChallengeAccepted.response = 7f9be586…   ← DIFFERENT
+  Post-handshake AES key = ASCII-seed(ChallengeAccepted.response)
+  → keyHex=d637d856aa723d258643d961dd6353ad
+  Observer wrongly used ChallengeResponse key → DECRYPT_TOTAL_FAIL (68/68)
+  Re-decrypt with Accepted key → 34 unique plaintext frames OK
+
+SMOKING GUNS (STP replies):
+  1) GetConfigResponse Config="false"
+     → no Facility→Recipient table
+     → subsequent Request recipient="" (empty)
+
+  2) InternetConnectedState connected="0"
+     → FIFA treats Origin/LSX as offline
+     → matches UI « Connexion aux serveurs EA momentanément impossible »
+       + globe X + « APPUYEZ SUR A POUR VOUS RECONNECTER »
+
+  3) Never seen in this transcript:
+     GoOnline / OnlineStatusEvent / Login Event / IS_MANUAL_OFFLINE /
+     GetAuthCode / PostWincodes / MiddlewareConnectResult
+
+  4) GetProfileResponse minimal SteamRIP:
+     Persona=STEAMRIP UserId=33068179 PersonaId=33068179 (then later PersonaId=140718521015232)
+     Country=US CommerceCurrency=USD — incomplete vs 14-field contract
+     missing UserIndex / IsTrialSubscriber / SubscriberLevel / IsSteamSubscriber / …
+
+VERDICT:
+  CONNECTED_FALSE (STP says connected=0)
+  + CONFIG_EMPTY (Config="false")
+  → online/login event chain never starts
+  → popup is the expected FIFA symptom
+
+NEXT (still no Login Event inject):
+  Force / patch STP replies on wire:
+    InternetConnectedState connected="1"
+    GetConfigResponse with real Service Facility map
+  Then re-run PROTOCOL_AUDIT and look for GoOnline → OnlineStatusEvent → Login Event

@@ -1,0 +1,18 @@
+RESTORE — revenir à v114-AUTH-PLST
+==================================
+
+Depuis la racine du repo :
+
+  Copy-Item tools\versions\v114-AUTH-PLST\src\blaze\handlers.ts src\blaze\handlers.ts -Force
+  Copy-Item tools\versions\v114-AUTH-PLST\src\blaze\trace.ts src\blaze\trace.ts -Force
+  Copy-Item tools\versions\v114-AUTH-PLST\src\shared\tdf.ts src\shared\tdf.ts -Force
+  Copy-Item tools\versions\v114-AUTH-PLST\src\shared\blazePacket.ts src\shared\blazePacket.ts -Force
+  Copy-Item tools\versions\v114-AUTH-PLST\tools\tdf-codec-test.mjs tools\tdf-codec-test.mjs -Force
+  Copy-Item tools\versions\v114-AUTH-PLST\frida-hook-offline-xrefs.js tools\frida-hook-offline-xrefs.js -Force
+  Copy-Item tools\versions\v114-AUTH-PLST\frida-ssl-bypass.js tools\frida-ssl-bypass.js -Force
+  Set-Content tools\versions\CURRENT.txt "v114-AUTH-PLST" -NoNewline
+  npm run build
+
+Puis relancer :
+  npm run start:ping-codec-test
+  .\tools\run-pipeline-probe.ps1

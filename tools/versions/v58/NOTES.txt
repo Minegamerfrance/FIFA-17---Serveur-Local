@@ -1,0 +1,41 @@
+v58 — crash-safe minimal (after v57 connection-test crash)
+
+Crash cause (v57 frida.log evidence):
+- after-CH: patches=143 (nearFail9=54 + gatesPatched=18)
+- Mid-instruction xor @612d542 (false e8 inside mov [rsp+40],r14)
+  was[e8 4c 89 74 24 40 e8 63] → corrupt control flow
+- Wild tgt e.g. 52d924c6 from misaligned call parse
+- v55/v56 parser-band mass xor stacked on near-FAIL9 = crash
+- Contrast: v53 single site 0x612d548 = no crash (FAIL_9 only)
+- Contrast: v48 = KeyMod inject crash
+
+v58 KEEP (minimal writes):
+A) FAIL9-pre dump; xor/je→jmp ONLY if call+test+je clearly matches
+   (v57 runtime: often NO match — jump-table of mov eax,err above stub)
+B) XREF xor ONLY for confirmed jcc/jmp → FAIL_9 (+ aligned call)
+C) Belt: ONLY known v53 site 0x612d548 (Instruction.parse must be `call`)
+D) LIVE, softHost sticky, flag+288, dumpCert @0x24b0, FAIL_9 observe
+
+v58 REMOVE / gated OFF:
+- Broad eax-test gate xor in 0x612d480–0x612e000
+- Mass near-FAIL9 gate xor (0x4000 window)
+- Stalker unless MODE=stalker
+- 0x1009→21 / force iState / flush / inject / prologue 0x6129eb0
+
+MODE=diag    — map/autopsy only
+MODE=bypass  — A+B+C (default)
+MODE=stalker — bypass + observe-only BB ring
+
+Expected log:
+- loaded v58 … mass gates OFF; stalker=false
+- FAIL9-pre hex / FAIL9-pre disasm
+- FAIL9-fallthrough: no je … (no patch — safe)   OR  applied=true if match
+- ★ FAIL_9 XREFs found=0 (typical)
+- PATCH belt-v53-site→xor …
+- setup done patches=1 (or ≤~3) fallthrough=false xrefXor=0 v53belt=1
+- dumpCert … ★PARSE_OK
+- recv … ★HelloDone
+- ★ ClientKeyExchange (hope) / or ★ HIT FAIL_9 (like v53, but NO crash)
+
+Succès: no crash + fail9Hits=0 + ★PARSE_OK + ★HelloDone + ★ ClientKeyExchange
+Acceptable interim: no crash + FAIL_9 observe (then refine with stalker BT)

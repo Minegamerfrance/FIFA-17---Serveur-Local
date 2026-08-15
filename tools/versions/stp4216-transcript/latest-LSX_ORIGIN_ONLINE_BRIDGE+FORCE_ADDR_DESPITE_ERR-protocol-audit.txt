@@ -1,0 +1,97 @@
+=== STP4216_PROTOCOL_AUDIT ===
+verdict=LSX_ORIGIN_FIX_NO_AUTHCODE
+why=GetSettings seen but IsManualOffline not extracted
+protocolVersion(@version)=3
+sdkVersion(<Version>)=9.12.1.2
+decryptOk=68 decryptFail=0
+keyModes={'session_accepted': 68}
+idMatchOk=18 idMatchFail=18
+eventWithId=0 loginAsResponse=False
+IsManualOffline=None
+connected=0
+GoOnlineCode=None
+isOnline=None
+loginEvent=False fields={}
+middlewareReason=None
+postWincodes=False
+authCodeSeen=False
+profile={'UserId': '33068179', 'PersonaId': '140713215810496', 'Persona': 'STEAMRIP', 'Country': 'US', 'IsUnderAge': 'false', 'IsSubscriber': 'true', 'GeoCountry': 'US', 'CommerceCountry': 'US', 'CommerceCurrency': 'USD'}
+profileMissing=['UserIndex', 'AvatarId', 'IsTrialSubscriber', 'SubscriberLevel', 'IsSteamSubscriber']
+presence={}
+identity={'ContentId': '1027460', 'MultiplayerId': '1027460', 'Title': 'FIFA 17', 'UserId': '33068179', 'PersonaId': '140713215810496', 'Persona': 'STEAMRIP'}
+--- Facility → Recipient ---
+--- Chronology ---
+1. Challenge
+2. Challenge
+3. ChallengeResponse
+4. ChallengeResponse
+5. ChallengeAccepted
+6. ChallengeAccepted
+7. GetConfig
+8. GetConfig
+9. GetConfigResponse
+10. GetConfigResponse
+11. GetProfile
+12. GetProfile
+13. GetProfileResponse
+14. GetProfileResponse
+15. GetSetting
+16. GetSetting
+17. GetSettingResponse
+18. GetSettingResponse
+19. Request
+20. Request
+21. Response
+22. Response
+23. Request
+24. Request
+25. Response
+26. Response
+27. GetSetting
+28. GetSetting
+29. GetSettingResponse
+30. GetSettingResponse
+31. GetSetting
+32. GetSetting
+33. GetSettingResponse
+34. GetSettingResponse
+35. Request
+36. Request
+37. Response
+38. Response
+39. GetProfile
+40. GetProfile
+41. GetProfileResponse
+42. GetProfileResponse
+43. Request
+44. Request
+45. Response
+46. Response
+47. GetSetting
+48. GetSetting
+49. GetSettingResponse
+50. GetSettingResponse
+51. Request
+52. Request
+53. Response
+54. Response
+55. Request
+56. Request
+57. ErrorSuccess
+58. ErrorSuccess
+59. GetSetting
+60. GetSetting
+61. GetSettingResponse
+62. GetSettingResponse
+63. Request
+64. Request
+65. Response
+66. Response
+67. GetInternetConnectedState
+68. GetInternetConnectedState
+69. InternetConnectedState
+70. InternetConnectedState
+71. GetProfile
+72. GetProfile
+73. GetProfileResponse
+74. GetProfileResponse

@@ -1,0 +1,17 @@
+v35 — je→jmp only (calls still run)
+====================================
+
+Safe pieces from v32/v34:
+- cert noext SHA1
+- flag +288 once
+- block alert 46
+- NO strHost rewrite
+
+New:
+- After ClientHello: patch ONLY 74→eb at cert-site test/je
+- Do NOT replace call with mov eax,0
+- Do NOT patch call1
+- Do NOT Interceptor real-check
+
+Résultat: pas de crash, pas d'ALERT 46, mais iState=4106 (fail autre voie).
+→ v36: patch call1 aussi + skip call cert site

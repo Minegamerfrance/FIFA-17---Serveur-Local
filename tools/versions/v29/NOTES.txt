@@ -1,0 +1,20 @@
+v29 — wait CH + server TLS, force cert-site ONCE
+================================================
+
+Hypothèse (après v28):
+- Ne pas FORCE→22 avant ClientHello
+- Ne pas traiter "gosredirector" seul comme parse OK
+- onLeave→0 une seule fois (évite spin ×900)
+- Setup Frida seulement après ClientHello
+
+Attendu si succès:
+  Frida: ClientHello → server TLS seen → CERT-SITE FORCE once → ★ ClientKeyExchange
+  npm:   first (107) → waiting CKE → got CKE / handshake OK
+
+Résultat test 2026-07-25:
+- ClientHello + ServerHello + Cert (765) reçus ✓
+- REAL PARSE (Online Technology Group) ✓
+- CRASH FIFA immédiat après parse — jamais CERT-SITE FORCE once
+- npm: ECONNRESET ~300ms après SH+Cert+Done
+Cause probable: Interceptor.attach sur 0x6129eb0 (hot) + FORCE→22 via setTimeout
+→ v30: AUCUN Interceptor sur REAL-CHECK, patch je→jmp seul, pas de FORCE auto

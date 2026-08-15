@@ -1,0 +1,14 @@
+v34 — flag only (no strHost), validate pSecure
+==============================================
+
+- Cert noext SHA1 (stable)
+- Set bAllowAnyCert@+288 = 1 ONLY ONCE at connect
+- NEVER rewrite strHost
+- Validate pSecure@+280 is a plausible heap pointer before write
+- Block alert 46/42
+- No code patches
+
+Résultat: PAS de crash. pSecure valide. flag+288=1 confirmé.
+ALERT 46 quand même → FIFA 17 ignore bAllowAnyCert (check ailleurs).
+strHost était la cause du crash v33.
+→ v35: je→jmp seul + flag once + block alert, SANS strHost / SANS skip call

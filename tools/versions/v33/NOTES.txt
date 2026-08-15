@@ -1,0 +1,13 @@
+v33 — soft flag/host + block alert 46 (no code patch)
+=====================================================
+
+Cert: noext SHA1 (gardé)
+Frida:
+- LIVE + bAllowAnyCert@+288=1
+- strHost → gosredirector.ea.com
+- block ALERT 46/42/43
+- PAS de Memory.patchCode
+
+Résultat: CRASH après recv 664 (alors que v32 observe-only OK avec même cert)
+⇒ flag@+288 et/ou strHost rewrite corrompent la mémoire
+→ v34: FLAG ONLY une fois, jamais strHost, valider pSecure

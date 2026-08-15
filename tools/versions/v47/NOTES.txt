@@ -1,0 +1,8 @@
+v47 — force SEND_KEY after HelloDone, no fake SECURE
+=====================================================
+
+Résultat: force 22 → loop 24↔28, ZERO CKE on wire.
+v46 natural was 28→29→30 — FIFA state nums ≠ classic 22/23/24.
+Forcing 22 fights the real state machine.
+
+→ v48: no force-22; inject RSA pubkey into pSecure; follow FIFA states 28+

@@ -1,0 +1,7 @@
+v45 — no VERIFY hook, no FAIL→21 imm
+====================================
+
+Résultat: anti-spin OK (recv back).
+recv SH+Cert 664 → shutdown FAIL_9 (4105) — HelloDone never read.
+Site patches 4 insuffisants contre le path 0x1009 @0x1461326fa.
+→ v46: surgical 0x1009→21 ONLY, no VERIFY hook; je→jmp only (calls run)

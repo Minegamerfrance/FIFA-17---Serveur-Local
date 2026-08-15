@@ -1,0 +1,14 @@
+v32 — noext SHA1 cert + observe-only Frida
+==========================================
+
+Changements:
+1. server.crt = fifa17/noext.crt (SHA1 self-signed, sans extensions X509)
+2. Frida: AUCUNE écriture mémoire (pas flag, pas strHost)
+   seulement logs connect/send/recv/alert
+
+Résultat: PAS DE CRASH ✓
+- ALERT 2/46 certificate_unknown (pas 42)
+- ClientHello 116, cert 654 OK
+- shutdown propre, FUT HTTP OK
+⇒ crash v29-v31 = cert MD5 755B et/ou écritures pendant parse
+→ v33: flag+strHost+block alert 46, encore SANS patch code
